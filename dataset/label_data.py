@@ -44,15 +44,15 @@ def getLabels(emotion_dic, reddit_text):
             subreddit = row[1]
             if text: # classes: [depression, anxiety, bipolar, addiction, ADHD]
                 if subreddit == 'r/depression':
-                    condition_label = [1,0,0,0,0]
+                    condition_label = "[1,0,0,0,0]"
                 elif subreddit == 'r/Anxiety':
-                    condition_label = [0,1,0,0,0]
+                    condition_label = "[0,1,0,0,0]"
                 elif subreddit == 'r/BipolarReddit':
-                    condition_label = [0,0,1,0,0]
+                    condition_label = "[0,0,1,0,0]"
                 elif subreddit == 'r/addiction':
-                    condition_label = [0,0,0,1,0]
+                    condition_label = "[0,0,0,1,0]"
                 elif subreddit == 'r/ADHD':
-                    condition_label = [0,0,0,0,1]
+                    condition_label = "[0,0,0,0,1]"
                 else:
                     print(f"Wrong subreddit? {subreddit}.", )
                     condition_label = None
@@ -65,8 +65,9 @@ def getLabels(emotion_dic, reddit_text):
                     emotion_label = (emotion_label | emotion_word)
 
                 if condition_label:# write to dataset
-                    condition_label = np.asarray(condition_label)
-                    w.writerow([text, condition_label, emotion_label]) #TODO: add emotion label
+                    emotion_label = list(emotion_label)
+                    
+                    w.writerow([text, condition_label, emotion_label]) #TODO: add emotion label #' '.join(map(str, a))
     print("done processing, created dataset")
     return 
 
