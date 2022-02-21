@@ -24,8 +24,8 @@ def scrape_data():
     
     subreddit_list = ["addiction", "ADHD", "BipolarReddit", "Anxiety", "depression", "AskReddit", "lifeofnorman", "Showerthoughts"]
 
-    generate_subreddit_pickles(reddit, subreddit_list)
-    # subreddit_scraper(30000)
+    # generate_subreddit_pickles(reddit, subreddit_list)
+    subreddit_scraper(subreddit_list, 30000)
 
 
 def submissions_pushshift_praw(reddit, subreddit, start=None, end=None, limit=100000, extra_query=""):
@@ -94,26 +94,33 @@ def generate_subreddit_pickles(reddit, subreddits):
             print("Posts randomized!", flush=True)
             pickle.dump(all_posts, open(pickle_name, "wb"))
 
-def subreddit_scraper(target):
-
-    with open('raw_data.csv','w') as f1:
-        writer=csv.writer(f1, delimiter='\t',lineterminator='\n',)
+def subreddit_scraper(subreddits, target):
+    comments = []
+    subs = []
+    for sub in subreddits:
+        pickle_name = "/home/elizfitz/cs224n_project/data/" + sub + ".p"
+        data = pickle.load(open(pickle_name, "rb"))
         keep_running = True
-        c = 1
-        for post in all_posts:
-            print("I got here with " + str(c) + " posts and " + str(target-counter) + " comments.", flush=True)
+        c = target
+        p = 0
+        for post in data:
+            print("I got here with " + str(p) + " posts and " + str(target-c) + " comments.", flush=True)
             if keep_running:
                 post.comments.replace_more(limit=None)
                 for comment in post.comments.list():
                     try:
-                        writer.writerow([comment.body, sub])
-                        counter -= 1
-                        if counter == 0:
+                        comments.append(comment.body)
+                        subs.append(sub)
+                        c -= 1
+                        if c == 0:
                             keep_running = False       
                             print("All comments collected!", flush=True)
                             break
                     except:
                         print("There was a bad character.", flush=True)
-            c += 1
+            p += 1
+
+    df = pd.DataFrame({'text':comments, 'subreddit':subs})
+    df.to_csv('/home/elizfitz/cs224n_project/data/raw_comments.csv', index=False)
 
 scrape_data()
