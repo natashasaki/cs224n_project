@@ -24,7 +24,8 @@ def scrape_data():
     
     subreddit_list = ["addiction", "ADHD", "BipolarReddit", "Anxiety", "depression", "AskReddit", "lifeofnorman", "Showerthoughts"]
 
-    subreddit_scraper(reddit, subreddit_list, 30000)
+    generate_subreddit_pickles(reddit, subreddit_list)
+    # subreddit_scraper(30000)
 
 
 def submissions_pushshift_praw(reddit, subreddit, start=None, end=None, limit=100000, extra_query=""):
@@ -70,50 +71,49 @@ def submissions_pushshift_praw(reddit, subreddit, start=None, end=None, limit=10
     # Return all PRAW submissions that were obtained.
     return matching_praw_submissions
 
+def generate_subreddit_pickles(reddit, subreddits):
+    for sub in subreddits:
+            curr_sub = reddit.subreddit(sub)
+            pickle_name = "data/" + sub + ".p"
+            timestamps = []
+            for dt in rrule.rrule(rrule.WEEKLY, dtstart=datetime.fromtimestamp(1577865600), until=datetime.fromtimestamp(1641023999)):
+                timestamps.append(int(round(dt.timestamp())))
 
-def subreddit_scraper(reddit, subreddits, target):
+            timestamps_2020_2022 = [1577865600, 1641023999]
+
+            print("Beginning the " + sub + " scraping", flush=True)
+            all_posts = []
+            for start_time, end_time in list(zip(timestamps, timestamps[1:])):
+                print("Starting to scrape from " + str(start_time) + " to " + str(end_time), flush=True)
+                try:
+                    all_posts += submissions_pushshift_praw(reddit=reddit, subreddit=curr_sub, start=start_time, end=end_time)
+                except:
+                    print("There was a bad character.", flush=True)
+            print(str(len(all_posts)) + " posts collected!", flush=True)
+            random.shuffle(all_posts)
+            print("Posts randomized!", flush=True)
+            pickle.dump(all_posts, open(pickle_name, "wb"))
+
+def subreddit_scraper(target):
 
     with open('raw_data.csv','w') as f1:
         writer=csv.writer(f1, delimiter='\t',lineterminator='\n',)
-        
-
-        for sub in subreddits:
-            curr_sub = reddit.subreddit(sub)
-            pickle_name = sub + ".p"
-            # timestamps = []
-            # for dt in rrule.rrule(rrule.MONTHLY, dtstart=datetime.fromtimestamp(1577865600), until=datetime.fromtimestamp(1641023999)):
-            #     timestamps.append(int(round(dt.timestamp())))
-
-            # timestamps_2020_2022 = [1577865600, 1641023999]
-
-            # print("Beginning the " + sub + " scraping", flush=True)
-            counter = target
-            # all_posts = []
-            # for start_time, end_time in list(zip(timestamps, timestamps[1:])):
-            #     print("Starting to scrape from " + str(start_time) + " to " + str(end_time), flush=True)
-            #     all_posts += submissions_pushshift_praw(reddit=reddit, subreddit=curr_sub, start=start_time, end=end_time)
-            # print(str(len(all_posts)) + " posts collected!", flush=True)
-            # random.shuffle(all_posts)
-            # print("Posts randomized!", flush=True)
-            # pickle.dump(all_posts, open(pickle_name, "wb"))
-            all_posts = pickle.load(open(pickle_name, "rb"))
-
-            keep_running = True
-            c = 1
-            for post in all_posts:
-                print("I got here with " + str(c) + " posts and " + str(target-counter) + " comments.", flush=True)
-                if keep_running:
-                    post.comments.replace_more(limit=None)
-                    for comment in post.comments.list():
-                        try:
-                            writer.writerow([comment.body, sub])
-                            counter -= 1
-                            if counter == 0:
-                                keep_running = False       
-                                print("All comments collected!", flush=True)
-                                break
-                        except:
-                            print("There was a bad character.", flush=True)
-                c += 1
+        keep_running = True
+        c = 1
+        for post in all_posts:
+            print("I got here with " + str(c) + " posts and " + str(target-counter) + " comments.", flush=True)
+            if keep_running:
+                post.comments.replace_more(limit=None)
+                for comment in post.comments.list():
+                    try:
+                        writer.writerow([comment.body, sub])
+                        counter -= 1
+                        if counter == 0:
+                            keep_running = False       
+                            print("All comments collected!", flush=True)
+                            break
+                    except:
+                        print("There was a bad character.", flush=True)
+            c += 1
 
 scrape_data()
