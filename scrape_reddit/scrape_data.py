@@ -95,9 +95,9 @@ def generate_subreddit_pickles(reddit, subreddits):
             pickle.dump(all_posts, open(pickle_name, "wb"))
 
 def subreddit_scraper(subreddits, target):
-    comments = []
-    subs = []
     for sub in subreddits:
+        comments = []
+        subs = []
         pickle_name = "/home/elizfitz/cs224n_project/data/" + sub + ".p"
         data = pickle.load(open(pickle_name, "rb"))
         keep_running = True
@@ -120,7 +120,7 @@ def subreddit_scraper(subreddits, target):
                         print("There was a bad character.", flush=True)
             p += 1
 
-    df = pd.DataFrame({'text':comments, 'subreddit':subs})
-    df.to_csv('/home/elizfitz/cs224n_project/data/raw_comments.csv', index=False)
+        df = pd.DataFrame({'text':comments, 'subreddit':subs})
+        df.to_csv('/home/elizfitz/cs224n_project/data/' + sub + '_comments.csv', index=False)
 
 scrape_data()
