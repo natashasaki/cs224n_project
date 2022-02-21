@@ -74,7 +74,7 @@ def submissions_pushshift_praw(reddit, subreddit, start=None, end=None, limit=10
 def generate_subreddit_pickles(reddit, subreddits):
     for sub in subreddits:
             curr_sub = reddit.subreddit(sub)
-            pickle_name = "data/" + sub + ".p"
+            pickle_name = "/home/elizfitz/cs224n_project/data/" + sub + ".p"
             timestamps = []
             for dt in rrule.rrule(rrule.WEEKLY, dtstart=datetime.fromtimestamp(1577865600), until=datetime.fromtimestamp(1641023999)):
                 timestamps.append(int(round(dt.timestamp())))
