@@ -97,30 +97,29 @@ def generate_subreddit_pickles(reddit, subreddits):
 def subreddit_scraper(subreddits, target):
     for sub in subreddits:
         comments = []
-        subs = []
-        pickle_name = "/home/elizfitz/cs224n_project/data/" + sub + ".p"
+        pickle_name = "D:\CS 224n\cs224n_project\data\\" + sub + ".p"
         data = pickle.load(open(pickle_name, "rb"))
         keep_running = True
-        c = target
-        p = 0
+        total_c = 0
+        file_num = 1
         for post in data:
-            print("I got here with " + str(p) + " posts and " + str(target-c) + " comments.", flush=True)
+            print("I have collected " + str(total_c) + " comments.", flush=True)
             if keep_running:
                 post.comments.replace_more(limit=None)
                 for comment in post.comments.list():
-                    try:
-                        comments.append(comment.body)
-                        subs.append(sub)
-                        c -= 1
-                        if c == 0:
-                            keep_running = False       
-                            print("All comments collected!", flush=True)
-                            break
-                    except:
-                        print("There was a bad character.", flush=True)
-            p += 1
+                    comments.append(comment.body)
+                    total_c += 1
+                    
+                    if total_c == target:
+                        keep_running = False       
+                        break
+                    elif total_c % 1000 == 0:
+                        pickle_name = "D:\CS 224n\cs224n_project\data\\" + sub + "_comments_" + str(file_num) + ".p"
+                        pickle.dump(comments, open(pickle_name, "wb"))
+                        file_num += 1
+                        comments = []
 
-        df = pd.DataFrame({'text':comments, 'subreddit':subs})
-        df.to_csv('/home/elizfitz/cs224n_project/data/' + sub + '_comments.csv', index=False)
+        pickle_name = "D:\CS 224n\cs224n_project\data\\" + sub + "_comments_" + str(file_num) + ".p"
+        pickle.dump(comments, open(pickle_name, "wb"))
 
 scrape_data()
