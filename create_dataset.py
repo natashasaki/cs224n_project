@@ -24,10 +24,11 @@ def text_preprocessing(text):
     return text
 
 
-def preprocessForBERT(data, max_len, tokenizer):
+def preprocessForBERT(data, max_len):
   # Initialise empty arrays
   input_ids = []
   attention_masks = []
+  tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case = True)
 
   # Encode_plus with above processing
   for comment in data:
@@ -49,11 +50,21 @@ def preprocessForBERT(data, max_len, tokenizer):
 
   return input_ids, attention_masks
 
-def createDataset(): 
+
+def loadData(): 
+    """
+      Reads in data from csv file
+    """
     header_list = ["text", "condition_label", "emotion_label"]
-    data = pd.read_csv("./dataset/dataset.csv", names=header_list)
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case = True)
-    MAX_LEN = 512
+    data = pd.read_csv("./dataset/dataset_partial.csv", on_bad_lines='skip', names=header_list)
+    print(data.head())
+    return data
+
+
+def splitData(data):
+    """
+      Splits dataset into train, dev, test set
+    """
 
     # train-val-test split: 80-10-10
     X_train, X_test, y_train, y_test = train_test_split(data['text'], data['condition_label'], test_size = 0.2, random_state = 123)
@@ -61,21 +72,23 @@ def createDataset():
 
     y_train= np.array(y_train.apply(lambda x: np.array(literal_eval(x)), 0).values.tolist())
     y_val = np.array(y_val.apply(lambda x: np.array(literal_eval(x)), 0).values.tolist())
+    y_test= np.array(y_test.apply(lambda x: np.array(literal_eval(x)), 0).values.tolist())
+    
+    return X_train, y_train, X_val, y_val, X_test, y_test
 
-    train_inputs, train_masks = preprocessForBERT(X_train, MAX_LEN, tokenizer)
-    val_inputs, val_masks = preprocessForBERT(X_val, MAX_LEN, tokenizer)
+def createDataset(inputs, masks, labels, batch_size=32):
+    data = TensorDataset(inputs, masks, labels)
+    sampler = RandomSampler(data)
+    dataloader = DataLoader(data, sampler = sampler, batch_size = batch_size)
+    return dataloader
 
-    train_labels = torch.tensor(y_train)
-    val_labels = torch.tensor(y_val)
-
-    batch_size = 32
-
-    train_data = TensorDataset(train_inputs, train_masks, train_labels)
-    train_sampler = RandomSampler(train_data)
-    train_dataloader = DataLoader(train_data, sampler = train_sampler, batch_size = batch_size)
-
-    val_data = TensorDataset(val_inputs, val_masks, val_labels)
-    val_sampler = RandomSampler(val_data)
-    val_dataloader = DataLoader(val_data, sampler = val_sampler, batch_size = batch_size)
-    return train_dataloader, val_dataloader
+    # val_data = TensorDataset(val_inputs, val_masks, val_labels)
+    # val_sampler = RandomSampler(val_data)
+    # val_dataloader = DataLoader(val_data, sampler = val_sampler, batch_size = batch_size)
+    
+    # test_data = TensorDataset(test_inputs, test_masks, test_labels)
+    # test_sampler = RandomSampler(test_data)
+    # test_dataloader = DataLoader(test_data, sampler = test_sampler, batch_size = batch_size)
+        
+    # return train_dataloader, val_dataloader, test_dataloader
 

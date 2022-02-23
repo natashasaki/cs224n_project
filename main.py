@@ -5,12 +5,18 @@ import time
 import numpy as np
 import torch.nn as nn
 import torch
-
-from create_dataset import createDataset
+from sklearn.metrics import classification_report, accuracy_score
+from transformers import BertForSequenceClassification
+from create_dataset import createDataset, preprocessForBERT, loadData, splitData
+from matplotlib import pyplot as plt
 
 def initialize():
-    # bert classifier
-    bert_classifier = BertClassifier(outputDim=5)
+    # bert classifier #BertForSequenceClassification.from_pretrained num_labels=5,
+                                                    #   output_attentions=False,
+                                                    #   output_hidden_states=False)
+    bert_classifier = BertClassifier(outputDim=6)
+                                                     
+    #BertClassifier(outputDim=5)
     bert_classifier.to(device)
 
     # optimiser (note, only classifier/finetuning weights will be modified)
@@ -58,6 +64,8 @@ def train(model, optimizer, scheduler, train_dataloader, val_dataloader=None, ep
 
         # Put the model into the training mode
         model.train()
+        y_actual = []
+        y_preds = []
 
         # For each batch of training data...
         for step, batch in enumerate(train_dataloader):
@@ -66,12 +74,14 @@ def train(model, optimizer, scheduler, train_dataloader, val_dataloader=None, ep
             b_input_ids, b_attn_mask, b_labels = tuple(t.to(device) for t in batch)
             labels=b_labels.argmax(dim=1)
             labels = labels.reshape((labels.shape[0]))
-
+            y_actual.append(labels)
+            
             # Zero out any previously calculated gradients
             model.zero_grad()
 
             # Perform a forward pass. This will return logits.
             logits = model(b_input_ids, b_attn_mask)
+            y_preds.append(logits)
 
             # Compute loss and accumulate the loss values
             loss = loss_fn(logits, labels)
@@ -108,6 +118,7 @@ def train(model, optimizer, scheduler, train_dataloader, val_dataloader=None, ep
         #               Evaluation
         # =======================================
         if evaluation == True:
+            print("val set: ")
             # After the completion of each training epoch, measure the model's performance
             # on our validation set.
             val_loss, val_accuracy = evaluate(model, val_dataloader)
@@ -118,8 +129,12 @@ def train(model, optimizer, scheduler, train_dataloader, val_dataloader=None, ep
             print(f"{epoch_i + 1:^7} | {'-':^7} | {avg_train_loss:^12.6f} | {val_loss:^10.6f} | {val_accuracy:^9.2f} | {time_elapsed:^9.2f}")
             print("-"*70)
         print("\n")
-    
+
     print("Training complete!")
+    print(y_actual)
+    print(y_preds)
+    return y_actual, y_preds
+
 
 
 def evaluate(model, val_dataloader):
@@ -159,15 +174,128 @@ def evaluate(model, val_dataloader):
 
     # Compute the average accuracy and loss over the validation set.
     val_loss = np.mean(val_loss)
-    val_accuracy = np.mean(val_accuracy)
-
+    val_accuracy = np.mean(val_accuracy)    
+    
     return val_loss, val_accuracy    
 
+from sklearn.metrics import accuracy_score, roc_curve, auc
+
+def evaluate_roc(probs, y_true):
+    preds = probs.argmax(axis=1) #probs[:, 1]
+    print(preds)
+    print(y_true)
+    fpr, tpr, threshold = roc_curve(y_true.detach().numpy(), preds.detach().numpy())
+    roc_auc = auc(fpr, tpr)
+    print(f'AUC: {roc_auc:.4f}')
+       
+    # Get accuracy over the test set
+    y_pred = np.where(preds >= 0.5, 1, 0)
+    accuracy = accuracy_score(y_true, y_pred)
+    print(f'Accuracy: {accuracy*100:.2f}%')
+    
+    # Plot ROC AUC
+    plt.title('Receiver Operating Characteristic')
+    plt.plot(fpr, tpr, 'b', label = 'AUC = %0.2f' % roc_auc)
+    plt.legend(loc = 'lower right')
+    plt.plot([0, 1], [0, 1],'r--')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
+    plt.show()
+
+import torch.nn.functional as F
+
+
+def make_predictions(model, dataloader):
+    """Uses model passed in to predict probabilities on the val/test set.
+    """
+    # Put the model into the evaluation mode. The dropout layers are disabled during
+    # the test time.
+    model.eval()
+
+    all_logits = []
+
+    # For each batch in our test set...
+    for batch in dataloader:
+        # Load batch to GPU
+        b_input_ids, b_attn_mask = tuple(t.to(device) for t in batch)[:2]
+
+        # Compute logits
+        with torch.no_grad():
+            logits = model(b_input_ids, b_attn_mask)
+        all_logits.append(logits)
+    
+    # Concatenate logits from each batch
+    all_logits = torch.cat(all_logits, dim=0)
+
+    # Apply softmax to calculate probabilities
+    probs = F.softmax(all_logits, dim=1).cpu().numpy()
+
+    return probs
+
+
+
+
+
+############### MAIN CODE ###############
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 set_seed(123)    # Set seed for reproducibility
-train_dataloader, val_dataloader = createDataset()
+data = loadData()
+X_train, y_train, X_val, y_val, X_test, y_test = splitData(data)
+# train_dataloader, val_dataloader, test_dataloader = createDataset()
+
+# pre-process data for BERT
+MAX_LEN = 512
+train_inputs, train_masks = preprocessForBERT(X_train, max_len=MAX_LEN)
+val_inputs, val_masks = preprocessForBERT(X_val, max_len=MAX_LEN)
+test_inputs, test_masks = preprocessForBERT(X_test, max_len = MAX_LEN)
+
+train_labels = torch.tensor(y_train)
+val_labels = torch.tensor(y_val)
+test_labels = torch.tensor(y_test)
+    
+train_dataloader = createDataset(train_inputs, train_masks, train_labels, batch_size=32)
+val_dataloader = createDataset(val_inputs, val_masks, val_labels, batch_size=32)
+test_dataloader = createDataset(test_inputs, test_masks, test_labels, batch_size=32)
 print("created dataset")
 bert_classifier, optimizer, scheduler = initialize()
 print("initialized model")
-train(bert_classifier, optimizer, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
+ 
+# train and evaluate model 
+y_actual, y_preds = train(bert_classifier, optimizer, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
+# metrics = classification_report(y_actual, y_preds)
+# accuracy = accuracy_score(y_actual, y_preds)
+
+# predictt probabilities on val set
+probs = make_predictions(bert_classifier, val_dataloader)
+print(probs.shape)
+probs = probs.argmax(axis=1)
+val_labels = val_labels.argmax(axis=1)
+print(probs)
+print(val_labels)
+print(classification_report(val_labels, probs, target_names = ["depression", "anxiety", "bipolar", "addiction", "adhd", "none"]))
+# evaluate_roc(probs, val_labels)
+print("done evaluating")
+#### TEST SET EVAL ####
+probs = make_predictions(bert_classifier, test_dataloader)
+print("done on test set")
+# from sklearn.metrics import f1_score
+
+# def f1_score_func(preds, labels):
+#     preds_flat = np.argmax(preds, axis=1).flatten()
+#     labels_flat = labels.flatten()
+#     return f1_score(labels_flat, preds_flat, average='weighted')
+
+# def accuracy_per_class(preds, labels):
+#     label_dict_inverse = {v: k for k, v in label_dict.items()}
+    
+#     preds_flat = np.argmax(preds, axis=1).flatten()
+#     labels_flat = labels.flatten()
+
+#     for label in np.unique(labels_flat):
+#         y_preds = preds_flat[labels_flat==label]
+#         y_true = labels_flat[labels_flat==label]
+#         print(f'Class: {label_dict_inverse[label]}')
+#         print(f'Accuracy: {len(y_preds[y_preds==label])}/{len(y_true)}\n')
