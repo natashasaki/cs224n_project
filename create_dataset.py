@@ -56,7 +56,7 @@ def loadData():
       Reads in data from csv file
     """
     header_list = ["text", "condition_label", "emotion_label"]
-    data = pd.read_csv("./dataset/dataset_partial.csv", on_bad_lines='skip', names=header_list)
+    data = pd.read_csv("./dataset/dataset_labelled.csv", on_bad_lines='skip', names=header_list)
     print(data.head())
     return data
 

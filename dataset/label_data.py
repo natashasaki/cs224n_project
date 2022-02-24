@@ -27,32 +27,32 @@ def getEmotionDict(lexicon_path, write_to_disk = False):
     return emo_dict
 
 # gets labels (one hot vec) for emotions and condition
-def getLabels(emotion_dic, reddit_text):
+def getLabels(emotion_dict, reddit_text):
 
     # text_subreddit_file = open(reddit_text)
-    w = csv.writer(open("dataset_partial.csv", "a"))
+    w = csv.writer(open("dataset_labelled.csv", "a"))
 
-    with open(reddit_text, newline=None) as csvfile:
+    with open(reddit_text, newline="", encoding='Latin1') as csvfile:
 
         # TODO: might need to change this depending on structure of csv
         reader = csv.reader(csvfile) 
         for row in reader:
 
             #TODO: might need more preprocessing depending on what the csv acutally looks like 
-            text = row[1] 
-            subreddit = row[0]
+            text = row[0] 
+            subreddit = row[1]
             if text: # classes: [depression, anxiety, bipolar, addiction, ADHD]
-                if subreddit == 'r/depression':
+                if subreddit == 'depression':
                     condition_label = "[1,0,0,0,0,0]"
-                elif subreddit == 'anxiety': #r/Anxiety
-                    condition_label = "[0,1,0,0,0, 0]"
-                elif subreddit == 'r/BipolarReddit':
-                    condition_label = "[0,0,1,0,0, 0]"
-                elif subreddit == 'r/addiction':
+                elif subreddit == 'Anxiety': #r/Anxiety
+                    condition_label = "[0,1,0,0,0,0]"
+                elif subreddit == 'BipolarReddit':
+                    condition_label = "[0,0,1,0,0,0]"
+                elif subreddit == 'addiction':
                     condition_label = "[0,0,0,1,0,0]"
-                elif subreddit == 'r/ADHD':
+                elif subreddit == 'ADHD':
                     condition_label = "[0,0,0,0,1,0]"
-                elif subreddit == "personalfinance" or subreddit == "fitness" or subreddit == "jokes":
+                elif subreddit == "AskReddit" or subreddit == "Showerthoughts" or subreddit == "jokes":
                     condition_label = "[0,0,0,0,0,1]"
                 else:
                     print(f"Wrong subreddit? {subreddit}.", )
@@ -68,12 +68,12 @@ def getLabels(emotion_dic, reddit_text):
                         emotion_label = (emotion_label | emotion_word)
                         emotion_label = list(emotion_label)
                     
-                    w.writerow([text, condition_label, emotion_label]) #TODO: add emotion label #' '.join(map(str, a))
+                    w.writerow([text.encode('Latin1'), condition_label, emotion_label]) #TODO: add emotion label #' '.join(map(str, a))
     print("done processing, created dataset")
     return 
 
 lexicon_path = "./NRC-Emotion-Lexicon-Wordlevel-v0.92.txt"
-reddit_text_path = './dataset_other.csv' # replace with relevant path
+reddit_text_path = 'D:\CS 224n\cs224n_project\data\\all_raw_comments.csv' # replace with relevant path
 
 # set write_to_disk = True if want to save to file
 emotion_dict = getEmotionDict(lexicon_path=lexicon_path) 

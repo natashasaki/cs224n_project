@@ -128,6 +128,8 @@ def train(model, optimizer, scheduler, train_dataloader, val_dataloader=None, ep
             
             print(f"{epoch_i + 1:^7} | {'-':^7} | {avg_train_loss:^12.6f} | {val_loss:^10.6f} | {val_accuracy:^9.2f} | {time_elapsed:^9.2f}")
             print("-"*70)
+
+        torch.save(model.state_dict(), './saved_models/most_recent_baseline.model')
         print("\n")
 
     print("Training complete!")
