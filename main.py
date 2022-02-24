@@ -97,7 +97,6 @@ def train(model, optimizer, train_labels, scheduler, train_dataloader, val_datal
             b_input_ids, b_attn_mask, b_labels = tuple(t.to(device) for t in batch)
             labels=b_labels.argmax(dim=1)
             labels = labels.reshape((labels.shape[0]))
-            y_actual.append(labels)
             
             # Zero out any previously calculated gradients
             model.zero_grad()
@@ -158,7 +157,7 @@ def train(model, optimizer, train_labels, scheduler, train_dataloader, val_datal
     print("Training complete!")
     
     #print(y_preds)
-    return y_actual, y_preds
+    return y_preds
 
 
 
