@@ -5,6 +5,7 @@ import time
 import numpy as np
 import torch.nn as nn
 import torch
+from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import classification_report, accuracy_score
 from transformers import BertForSequenceClassification
 from create_dataset import createDataset, preprocessForBERT, loadData, splitData
@@ -41,12 +42,34 @@ def set_seed(seed_value=42):
 
 
 
-def train(model, optimizer, scheduler, train_dataloader, val_dataloader=None, epochs=4, evaluation=False):
+def train(model, optimizer, train_labels, scheduler, train_dataloader, val_dataloader=None, epochs=4, evaluation=False):
     """Train the BertClassifier model.
     """
     # Start training loop
     print("Start training...\n")
-    loss_fn = nn.CrossEntropyLoss()
+    y_integers = np.argmax(train_labels, axis=1)
+    print(y_integers.shape)
+    class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_integers), y=y_integers.cpu().detach().numpy())
+
+    # class_weights = compute_class_weight(class_weight ='balanced', classes=unique, y=np.array(train_labels.values))
+    print(class_weights)
+    weights= torch.tensor(class_weights,dtype=torch.float)
+
+    # push to GPU
+    weights = weights.to(device)
+
+    loss_fn = nn.CrossEntropyLoss(weight=weights)
+
+#    class_weights = compute_class_weight('balanced', np.unique(train_labels), train_labels)
+ #   print(class_weights)
+  #  weights= torch.tensor(class_weights,dtype=torch.float)
+
+    # push to GPU
+   # weights = weights.to(device)
+
+    #loss_fn = nn.CrossEntropyLoss(weight=weights)
+
+   # loss_fn = nn.CrossEntropyLoss()
 
     for epoch_i in range(epochs):
         # =======================================
@@ -64,7 +87,7 @@ def train(model, optimizer, scheduler, train_dataloader, val_dataloader=None, ep
 
         # Put the model into the training mode
         model.train()
-        y_actual = []
+    
         y_preds = []
 
         # For each batch of training data...
@@ -129,12 +152,12 @@ def train(model, optimizer, scheduler, train_dataloader, val_dataloader=None, ep
             print(f"{epoch_i + 1:^7} | {'-':^7} | {avg_train_loss:^12.6f} | {val_loss:^10.6f} | {val_accuracy:^9.2f} | {time_elapsed:^9.2f}")
             print("-"*70)
 
-        torch.save(model.state_dict(), './saved_models/most_recent_baseline.model')
+        torch.save(model.state_dict(), f"./saved_models/baseline_epoch{epoch_i}.model")
         print("\n")
 
     print("Training complete!")
-    print(y_actual)
-    print(y_preds)
+    
+    #print(y_preds)
     return y_actual, y_preds
 
 
@@ -266,23 +289,63 @@ bert_classifier, optimizer, scheduler = initialize()
 print("initialized model")
  
 # train and evaluate model 
-y_actual, y_preds = train(bert_classifier, optimizer, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
-# metrics = classification_report(y_actual, y_preds)
-# accuracy = accuracy_score(y_actual, y_preds)
+y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
 
-# predictt probabilities on val set
+
+# load model
+#model = BertClassifier(outputDim=6)
+#model = torch.load("./saved_models/baseline_epoch1.model")
+
+
+print("calculating train set metrics")
+# train set metrics
+#probs = make_predictions(bert_classifier, train_dataloader)
+#probs = probs.argmax(axis=1)
+#train_labels = train_labels.argmax(axis=1)
+#f1_rec_prec_train = classification_report(train_labels, probs, labels=[0, 1, 2, 3,4,5], target_names = ["depression", "anxiety", "bipolar", "addiction", "adhd", "none"])
+#accuracy_train = accuracy_score(train_labels, probs)
+#print(f1_rec_prec_train)
+#print(accuracy_train)
+
+print("calculating val set metrics")
+# val set metrics 
 probs = make_predictions(bert_classifier, val_dataloader)
-print(probs.shape)
 probs = probs.argmax(axis=1)
 val_labels = val_labels.argmax(axis=1)
-print(probs)
-print(val_labels)
-print(classification_report(val_labels, probs, target_names = ["depression", "anxiety", "bipolar", "addiction", "adhd", "none"]))
-# evaluate_roc(probs, val_labels)
-print("done evaluating")
-#### TEST SET EVAL ####
+f1_rec_prec_val = classification_report(val_labels, probs,output_dict=True, labels=[0, 1, 2, 3,4,5], target_names = ["depression", "anxiety", "bipolar", "addiction", "adhd", "none"])
+accuracy_val= accuracy_score(val_labels, probs)
+#dict = {'Python' : '.py', 'C++' : '.cpp', 'Java' : '.java'}
+
+# open file for writing
+f = open("./metrics/dict_val.txt","w")
+
+# write file
+f.write( str(f1_rec_prec_val))
+
+# close file
+f.close()
+
+print(f1_rec_prec_val)
+print(accuracy_val)
+
+
+# test set metrics (only do this a few times max)
+print("calculating test set metrics")
 probs = make_predictions(bert_classifier, test_dataloader)
+probs = probs.argmax(axis=1)
+test_labels = test_labels.argmax(axis=1)
+f1_rec_prec_test = classification_report(test_labels, probs,output_dict=True, labels=[0, 1, 2, 3,4,5], target_names = ["depression", "anxiety", "bipolar", "addiction", "adhd", "none"])
+accuracy_test = accuracy_score(test_labels, probs)
+print(f1_rec_prec_test)
+print(accuracy_test) 
+f = open("./metrics/dict_test.txt","w")
+f.write( str(f1_rec_prec_test) )
+
+# close file
+f.close()
 print("done on test set")
+
+#### TEST SET EVAL ####
 # from sklearn.metrics import f1_score
 
 # def f1_score_func(preds, labels):

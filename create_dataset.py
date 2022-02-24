@@ -10,7 +10,7 @@ from ast import literal_eval
 def RedditToConditionDataset(Dataset): 
     def __init__(self, path, max_len, ):
         header_list = ["text", "condition_label", "emotion_label"]
-        data = pd.read_csv("dataset.csv", names=header_list,)
+        data = pd.read_csv("./dataset/dataset_partial.csv", names=header_list,)
         X_train, X_test, y_train, y_test = train_test_split(data['text'], data['condition_label'], test_size = 0.2, random_state = 123)
 
 
@@ -56,9 +56,32 @@ def loadData():
       Reads in data from csv file
     """
     header_list = ["text", "condition_label", "emotion_label"]
-    data = pd.read_csv("./dataset/dataset_labelled.csv", on_bad_lines='skip', names=header_list)
+    data = pd.read_csv("./dataset/dataset_partial.csv", on_bad_lines='skip', names=header_list)
+        # data = pd.read_csv("./dataset/dataset.csv", on_bad_lines='skip', names=header_list)
+
     print(data.head())
-    return data
+    dist = data.groupby('condition_label')['text'].nunique()
+    print(dist)
+    N = 100
+    dep= data.loc[data['condition_label'] == "[1,0,0,0,0,0]"].head(100)
+    print(dep)
+    anx= data.loc[data['condition_label'] == "[0,1,0,0,0, 0]"].head(200)
+    print(anx)
+    bp= data.loc[data['condition_label'] == "[0,0,1,0,0, 0]"].head(100)
+    print(bp)
+    adhd= data.loc[data['condition_label'] == "[0,0,0,0,1,0]"].head(200)
+    print(adhd)
+    add= data.loc[data['condition_label'] == "[0,0,0,1,0,0]"].head(100)
+    print(add)
+    oth= data.loc[data['condition_label'] == "[0,0,0,0,0,1]"].head(200)
+    print(oth)
+
+    frames = [dep, anx, bp, adhd, add, oth]
+
+    result = pd.concat(frames)
+    print(result)
+   # return data
+    return result
 
 
 def splitData(data):
@@ -69,7 +92,6 @@ def splitData(data):
     # train-val-test split: 80-10-10
     X_train, X_test, y_train, y_test = train_test_split(data['text'], data['condition_label'], test_size = 0.2, random_state = 123)
     X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size = 0.5, random_state = 123)
-
     y_train= np.array(y_train.apply(lambda x: np.array(literal_eval(x)), 0).values.tolist())
     y_val = np.array(y_val.apply(lambda x: np.array(literal_eval(x)), 0).values.tolist())
     y_test= np.array(y_test.apply(lambda x: np.array(literal_eval(x)), 0).values.tolist())
