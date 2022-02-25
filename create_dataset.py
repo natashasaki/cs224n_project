@@ -81,7 +81,7 @@ def loadData():
     result = pd.concat(frames)
     print(result)
    # return data
-    return result
+    return data
 
 
 def splitData(data):

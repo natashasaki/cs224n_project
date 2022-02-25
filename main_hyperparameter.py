@@ -11,7 +11,7 @@ from transformers import BertForSequenceClassification
 from create_dataset import createDataset, preprocessForBERT, loadData, splitData
 from matplotlib import pyplot as plt
 
-def initialize():
+def initialize(learning_rate):
     # bert classifier #BertForSequenceClassification.from_pretrained num_labels=5,
                                                     #   output_attentions=False,
                                                     #   output_hidden_states=False)
@@ -21,7 +21,7 @@ def initialize():
     bert_classifier.to(device)
 
     # optimiser (note, only classifier/finetuning weights will be modified)
-    optimizer = AdamW(bert_classifier.parameters(), lr = 5e-5, eps=1e-8)
+    optimizer = AdamW(bert_classifier.parameters(), lr = learning_rate, eps=1e-8)
 
     epochs = 3 #TODO: consider changing -- recommended # epochs for BERT between 2 and 4 (Sun et al., 2020)
 
@@ -279,91 +279,6 @@ test_inputs, test_masks = preprocessForBERT(X_test, max_len = MAX_LEN)
 train_labels = torch.tensor(y_train)
 val_labels = torch.tensor(y_val)
 test_labels = torch.tensor(y_test)
-    
-train_dataloader = createDataset(train_inputs, train_masks, train_labels, batch_size=32)
-val_dataloader = createDataset(val_inputs, val_masks, val_labels, batch_size=32)
-test_dataloader = createDataset(test_inputs, test_masks, test_labels, batch_size=32)
-print("created dataset")
-bert_classifier, optimizer, scheduler = initialize()
-print("initialized model")
- 
-# train and evaluate model 
-y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
-
-
-# load model
-#model = BertClassifier(outputDim=6)
-#model = torch.load("./saved_models/baseline_epoch1.model")
-
-
-print("calculating train set metrics")
-# train set metrics
-#probs = make_predictions(bert_classifier, train_dataloader)
-#probs = probs.argmax(axis=1)
-#train_labels = train_labels.argmax(axis=1)
-#f1_rec_prec_train = classification_report(train_labels, probs, labels=[0, 1, 2, 3,4,5], target_names = ["depression", "anxiety", "bipolar", "addiction", "adhd", "none"])
-#accuracy_train = accuracy_score(train_labels, probs)
-#print(f1_rec_prec_train)
-#print(accuracy_train)
-
-print("calculating val set metrics")
-# val set metrics 
-probs = make_predictions(bert_classifier, val_dataloader)
-probs = probs.argmax(axis=1)
-val_labels = val_labels.argmax(axis=1)
-f1_rec_prec_val = classification_report(val_labels, probs,output_dict=True, labels=[0, 1, 2, 3,4,5], target_names = ["depression", "anxiety", "bipolar", "addiction", "adhd", "none"])
-accuracy_val= accuracy_score(val_labels, probs)
-#dict = {'Python' : '.py', 'C++' : '.cpp', 'Java' : '.java'}
-
-# open file for writing
-f = open("./metrics/dict_val.txt","w")
-
-# write file
-f.write( str(f1_rec_prec_val))
-
-# close file
-f.close()
-
-print(f1_rec_prec_val)
-print(accuracy_val)
-
-
-# test set metrics (only do this a few times max)
-print("calculating test set metrics")
-probs = make_predictions(bert_classifier, test_dataloader)
-probs = probs.argmax(axis=1)
-test_labels = test_labels.argmax(axis=1)
-f1_rec_prec_test = classification_report(test_labels, probs,output_dict=True, labels=[0, 1, 2, 3,4,5], target_names = ["depression", "anxiety", "bipolar", "addiction", "adhd", "none"])
-accuracy_test = accuracy_score(test_labels, probs)
-print(f1_rec_prec_test)
-print(accuracy_test) 
-f = open("./metrics/dict_test.txt","w")
-f.write( str(f1_rec_prec_test) )
-
-# close file
-f.close()
-print("done on test set")
-
-#### TEST SET EVAL ####
-# from sklearn.metrics import f1_score
-
-# def f1_score_func(preds, labels):
-#     preds_flat = np.argmax(preds, axis=1).flatten()
-#     labels_flat = labels.flatten()
-#     return f1_score(labels_flat, preds_flat, average='weighted')
-
-# def accuracy_per_class(preds, labels):
-#     label_dict_inverse = {v: k for k, v in label_dict.items()}
-    
-#     preds_flat = np.argmax(preds, axis=1).flatten()
-#     labels_flat = labels.flatten()
-
-#     for label in np.unique(labels_flat):
-#         y_preds = preds_flat[labels_flat==label]
-#         y_true = labels_flat[labels_flat==label]
-#         print(f'Class: {label_dict_inverse[label]}')
-#         print(f'Accuracy: {len(y_preds[y_preds==label])}/{len(y_true)}\n')
-
 
 
 learning_rates = [5e-5, 5e-3, 5e-1, .5, .95]
