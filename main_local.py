@@ -169,7 +169,8 @@ def evaluate(model, val_dataloader):
     val_accuracy = []
     val_loss = []
     loss_fn = nn.CrossEntropyLoss()
-
+    labels_all = []
+    preds_all = []
     # For each batch in our validation set...
     for batch in val_dataloader:
         # Load batch to GPU
@@ -191,10 +192,16 @@ def evaluate(model, val_dataloader):
         # Calculate the accuracy rate
         accuracy = (preds == labels).cpu().numpy().mean() * 100
         val_accuracy.append(accuracy)
+        print(preds.cpu().numpy().tolist())
+        preds_all = preds_all + preds.cpu().numpy().tolist()
+        labels_all = labels_all + labels.cpu().numpy().tolist()
 
     # Compute the average accuracy and loss over the validation set.
     val_loss = np.mean(val_loss)
     val_accuracy = np.mean(val_accuracy)    
+    print(labels_all)
+    print(preds_all)
+    print(classification_report(np.array(labels_all), np.array(preds_all), labels=[0, 1, 2, 3,4,5], target_names = ["depression", "anxiety", "bipolar", "addiction", "adhd", "none"]))
     
     return val_loss, val_accuracy    
 
@@ -280,19 +287,21 @@ train_dataloader = createDataset(train_inputs, train_masks, train_labels, batch_
 val_dataloader = createDataset(val_inputs, val_masks, val_labels, batch_size=32)
 test_dataloader = createDataset(test_inputs, test_masks, test_labels, batch_size=32)
 print("created dataset")
-bert_classifier, optimizer, scheduler = initialize()
-print("initialized model")
+#bert_classifier, optimizer, scheduler = initialize()
+#print("initialized model")
  
 # train and evaluate model 
-y_actual, y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
+#y_actual, y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
 
 # predictt probabilities on val set
-probs = make_predictions(bert_classifier, val_dataloader)
-print(probs.shape)
+#probs = make_predictions(bert_classifier, val_dataloader)
+#print(probs.shape)
 
 # load model
 model = BertClassifier(outputDim=6)
-model = torch.load("./saved_models/most_recent_baseline.model")
+model.load_state_dict(torch.load("./baseline_epoch1.model", map_location=torch.device('cpu')))
+
+print(evaluate(model, val_dataloader))
 
 
 print("calculating train set metrics")
