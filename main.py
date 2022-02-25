@@ -11,7 +11,7 @@ from transformers import BertForSequenceClassification
 from create_dataset import createDataset, preprocessForBERT, loadData, splitData
 from matplotlib import pyplot as plt
 
-def initialize():
+def initialize(learning_rate):
     # bert classifier #BertForSequenceClassification.from_pretrained num_labels=5,
                                                     #   output_attentions=False,
                                                     #   output_hidden_states=False)
@@ -21,7 +21,7 @@ def initialize():
     bert_classifier.to(device)
 
     # optimiser (note, only classifier/finetuning weights will be modified)
-    optimizer = AdamW(bert_classifier.parameters(), lr = 5e-5, eps=1e-8)
+    optimizer = AdamW(bert_classifier.parameters(), lr = learning_rate, eps=1e-8)
 
     epochs = 3 #TODO: consider changing -- recommended # epochs for BERT between 2 and 4 (Sun et al., 2020)
 
@@ -279,6 +279,7 @@ test_inputs, test_masks = preprocessForBERT(X_test, max_len = MAX_LEN)
 train_labels = torch.tensor(y_train)
 val_labels = torch.tensor(y_val)
 test_labels = torch.tensor(y_test)
+<<<<<<< HEAD
     
 train_dataloader = createDataset(train_inputs, train_masks, train_labels, batch_size=32)
 val_dataloader = createDataset(val_inputs, val_masks, val_labels, batch_size=32)
@@ -364,6 +365,8 @@ print("done on test set")
 #         print(f'Class: {label_dict_inverse[label]}')
 #         print(f'Accuracy: {len(y_preds[y_preds==label])}/{len(y_true)}\n')
 
+=======
+>>>>>>> f38a104f096923d43ac6dd1fa2989332c30b9736
 
 
 learning_rates = [5e-5, 5e-3, 5e-1, .5, .95]
@@ -462,4 +465,8 @@ for lr in learning_rates:
             #         print(f'Accuracy: {len(y_preds[y_preds==label])}/{len(y_true)}\n')
 
 sorted(val_accuracies, key=lambda x: x[0])
+<<<<<<< HEAD
 print(val_accuracies[0])
+=======
+print(val_accuracies[0])
+>>>>>>> f38a104f096923d43ac6dd1fa2989332c30b9736
