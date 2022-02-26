@@ -289,7 +289,6 @@ test_inputs, test_masks = preprocessForBERT(X_test, max_len = MAX_LEN)
 train_labels = torch.tensor(y_train)
 val_labels = torch.tensor(y_val)
 test_labels = torch.tensor(y_test)
-    
 train_dataloader = createDataset(train_inputs, train_masks, train_labels, batch_size=32)
 val_dataloader = createDataset(val_inputs, val_masks, val_labels, batch_size=32)
 test_dataloader = createDataset(test_inputs, test_masks, test_labels, batch_size=32)
@@ -343,21 +342,3 @@ print(evaluate(model, val_dataloader))
 # print(accuracy_test) 
 
 # print("done on test set")
-# from sklearn.metrics import f1_score
-
-# def f1_score_func(preds, labels):
-#     preds_flat = np.argmax(preds, axis=1).flatten()
-#     labels_flat = labels.flatten()
-#     return f1_score(labels_flat, preds_flat, average='weighted')
-
-# def accuracy_per_class(preds, labels):
-#     label_dict_inverse = {v: k for k, v in label_dict.items()}
-    
-#     preds_flat = np.argmax(preds, axis=1).flatten()
-#     labels_flat = labels.flatten()
-
-#     for label in np.unique(labels_flat):
-#         y_preds = preds_flat[labels_flat==label]
-#         y_true = labels_flat[labels_flat==label]
-#         print(f'Class: {label_dict_inverse[label]}')
-#         print(f'Accuracy: {len(y_preds[y_preds==label])}/{len(y_true)}\n')
