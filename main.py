@@ -208,7 +208,7 @@ def evaluate(model, val_dataloader):
 
     disp = ConfusionMatrixDisplay(confusion_matrix=cM, display_labels=displayClasses)
     disp.plot()
-    disp.savefig('confusion_baseline_epoch1.png')
+    disp.figure_.savefig('confusion_most_recent_baseline.png', dpi=300)
 
     return val_loss, val_accuracy    
 
@@ -305,8 +305,8 @@ print("created dataset")
 
 # load model
 model = BertClassifier(outputDim=6)
-model.load_state_dict(torch.load("./baseline_epoch1.model", map_location=torch.device('cpu')))
-
+model.load_state_dict(torch.load("./saved_models/most_recent_baseline.model", map_location=torch.device('cpu')))
+model.to(device)
 print(evaluate(model, val_dataloader))
 
 
