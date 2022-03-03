@@ -65,9 +65,9 @@ def loadData():
     N = 100
     dep= data.loc[data['condition_label'] == "[1,0,0,0,0,0]"].head(100)
     print(dep)
-    anx= data.loc[data['condition_label'] == "[0,1,0,0,0, 0]"].head(200)
+    anx= data.loc[data['condition_label'] == "[0,1,0,0,0,0]"].head(200)
     print(anx)
-    bp= data.loc[data['condition_label'] == "[0,0,1,0,0, 0]"].head(100)
+    bp= data.loc[data['condition_label'] == "[0,0,1,0,0,0]"].head(100)
     print(bp)
     adhd= data.loc[data['condition_label'] == "[0,0,0,0,1,0]"].head(200)
     print(adhd)
@@ -80,6 +80,37 @@ def loadData():
 
     result = pd.concat(frames)
     print(result)
+   # return data
+    return data
+
+def loadDataExp3(): 
+    """
+      Reads in data from csv file
+    """
+    data = pd.read_csv("./dataset/dataset_labelled_exp_3.csv", on_bad_lines='skip')
+        # data = pd.read_csv("./dataset/dataset.csv", on_bad_lines='skip', names=header_list)
+
+    # print(data.head())
+    # dist = data.groupby('condition_label')['text'].nunique()
+    # print(dist)
+    # N = 100
+    # dep= data.loc[data['condition_label'] == "[1,0,0,0,0,0]"].head(100)
+    # print(dep)
+    # anx= data.loc[data['condition_label'] == "[0,1,0,0,0,0]"].head(200)
+    # print(anx)
+    # bp= data.loc[data['condition_label'] == "[0,0,1,0,0,0]"].head(100)
+    # print(bp)
+    # adhd= data.loc[data['condition_label'] == "[0,0,0,0,1,0]"].head(200)
+    # print(adhd)
+    # add= data.loc[data['condition_label'] == "[0,0,0,1,0,0]"].head(100)
+    # print(add)
+    # oth= data.loc[data['condition_label'] == "[0,0,0,0,0,1]"].head(200)
+    # print(oth)
+
+    # frames = [dep, anx, bp, adhd, add, oth]
+
+    # result = pd.concat(frames)
+    # print(result)
    # return data
     return data
 
