@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict
 import csv
+from ast import literal_eval
 
 
 # gets labels (one hot vec) for emotions and condition
@@ -21,8 +22,9 @@ def combine_labels(reddit_text):
                 emotion_label = row[2]
 
                 cond_emo_label = condition_label[:len(condition_label)-1] + "," + emotion_label[1:]
+                
                         
-                w.writerow([text, cond_emo_label])
+                w.writerow([text, literal_eval(cond_emo_label)])
             except:
                 continue
     print("done processing, created dataset")
