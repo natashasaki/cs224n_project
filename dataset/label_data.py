@@ -63,7 +63,7 @@ def getLabels(emotion_dict, reddit_text):
                     # process emotions
                     emotion_label = np.zeros((8,)).astype(int)
                     for word in text.split(): 
-                        # emotion label: [anger, anticipation, disgust, feat, joy, surprise, trust]
+                        # emotion label: [anger, anticipation, disgust, feat, joy, sadness, surprise, trust]
                         emotion_word = np.asarray(emotion_dict[word]).astype(int) if word in emotion_dict else np.zeros((8,)).astype(int)
                         emotion_label = (emotion_label | emotion_word)
                         emotion_label = list(emotion_label)
