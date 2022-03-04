@@ -8,7 +8,7 @@ import torch
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from transformers import BertForSequenceClassification
-from create_dataset import createDataset, preprocessForBERT, loadDataExp3, splitData
+from create_dataset import createDataset, preprocessForBERT, loadDataExp3, splitData3
 from matplotlib import pyplot as plt
 
 def initialize():
@@ -279,7 +279,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 set_seed(123)    # Set seed for reproducibility
 data = loadDataExp3()
-X_train, y_train, X_val, y_val, X_test, y_test = splitData(data)
+X_train, y_train, X_val, y_val, X_test, y_test = splitData3(data)
 # train_dataloader, val_dataloader, test_dataloader = createDataset()
 
 # pre-process data for BERT
