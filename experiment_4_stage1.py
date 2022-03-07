@@ -17,7 +17,7 @@ def initialize():
     # bert classifier #BertForSequenceClassification.from_pretrained num_labels=5,
                                                     #   output_attentions=False,
                                                     #   output_hidden_states=False)
-    bert_classifier = BertClassifier(outputDim=6)
+    bert_classifier = BertClassifier(outputDim=8)
                                                      
     #BertClassifier(outputDim=5)
     bert_classifier.to(device)
@@ -58,8 +58,6 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
     y_integers = np.argmax(train_labels, axis=1)
     print(y_integers.shape)
     class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_integers), y=y_integers.cpu().detach().numpy())
-
-    # class_weights = compute_class_weight(class_weight ='balanced', classes=unique, y=np.array(train_labels.values))
     print(class_weights)
     weights= torch.tensor(class_weights,dtype=torch.float)
 
@@ -149,7 +147,7 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
             print(f"{epoch_i + 1:^7} | {'-':^7} | {avg_train_loss:^12.6f} | {val_loss:^10.6f} | {val_accuracy:^9.2f} | {time_elapsed:^9.2f}")
             print("-"*70)
 
-        torch.save(model.state_dict(), './saved_models/exp4_epoch_' + str(epochs) + '.model')
+        torch.save(model.state_dict(), './saved_models/exp4_stage1.model')
         print("\n")
 
     print("Training complete!")
@@ -179,7 +177,6 @@ def evaluate(model, val_dataloader):
         b_input_ids, b_attn_mask, b_labels = tuple(t.to(device) for t in batch)
         labels=b_labels.argmax(dim=1)
         labels = labels.reshape((labels.shape[0]))
-        labels = labels[:,:8]
 
         # Compute logits
         with torch.no_grad():
@@ -191,7 +188,6 @@ def evaluate(model, val_dataloader):
 
         # Get the predictions
         preds = torch.argmax(logits, dim=1).flatten()
-        preds = preds[:,:8]
 
         # Calculate the accuracy rate
         accuracy = (preds == labels).cpu().numpy().mean() * 100
@@ -289,10 +285,9 @@ if os.path.exists("./data/train_dataloader.pkl"):
     val_labels = pickle.load(open("./data/val_labels.pkl", "rb"))
     test_labels = pickle.load(open("./data/test_labels.pkl", "rb"))
 else:
-    set_seed(123)    # Set seed for reproducibility
+    set_seed(123)
     data = loadData()
-    X_train, y_train, X_val, y_val, X_test, y_test = splitData(data)
-    # train_dataloader, val_dataloader, test_dataloader = createDataset()
+    X_train, y_train, X_val, y_val, X_test, y_test = splitData(data, condition=False)
 
     # pre-process data for BERT
     MAX_LEN = 512
@@ -322,13 +317,9 @@ print("initialized model")
 # train and evaluate model 
 y_actual, y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
 
-# predictt probabilities on val set
-probs = make_predictions(bert_classifier, val_dataloader)
-print(probs.shape)
-
 # load model
-model = BertClassifier(outputDim=6)
-model.load_state_dict(torch.load("./saved_models/most_recent_exp4_2.model", map_location=torch.device('cpu')))
-model.to(device)
-print(evaluate(model, val_dataloader))
+# model = BertClassifier(outputDim=6)
+# model.load_state_dict(torch.load("./saved_models/most_recent_exp4_2.model", map_location=torch.device('cpu')))
+# model.to(device)
+# print(evaluate(model, val_dataloader))
 

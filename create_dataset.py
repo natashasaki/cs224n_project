@@ -83,13 +83,18 @@ def loadData():
    # return data
     return data
 
-def splitData(data):
+def splitData(data, condition=True):
     """
       Splits dataset into train, dev, test set
     """
 
+    if condition:
+      label = 'condition_label'
+    else:
+      label = 'emotion_label'
+
     # train-val-test split: 80-10-10
-    X_train, X_test, y_train, y_test = train_test_split(data['text'], data['emotion_label'], test_size = 0.2, random_state = 123)
+    X_train, X_test, y_train, y_test = train_test_split(data['text'], data[label], test_size = 0.2, random_state = 123)
     X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size = 0.5, random_state = 123)
     y_train= np.array(y_train.apply(lambda x: np.array(literal_eval(x)), 0).values.tolist())
     y_val = np.array(y_val.apply(lambda x: np.array(literal_eval(x)), 0).values.tolist())
