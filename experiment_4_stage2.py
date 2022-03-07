@@ -201,7 +201,7 @@ def evaluate(model, val_dataloader):
     print(labels_all)
     print(preds_all)
     # [anger, anticipation, disgust, feat, joy, sadness, surprise, trust]
-    print(classification_report(np.array(labels_all), np.array(preds_all), labels=[0, 1, 2, 3, 4, 5, 6, 7], target_names = ["anger", "anticipation", "disgust", "fear", "joy", "sadness", "surprise", "trust"]))
+    print(classification_report(np.array(labels_all), np.array(preds_all), labels=[0, 1, 2, 3,4,5], target_names = ["depression", "anxiety", "bipolar", "addiction", "adhd", "none"]))
     cM = confusion_matrix(labels_all, preds_all)
 
     displayClasses = [i for i in range(8)]
