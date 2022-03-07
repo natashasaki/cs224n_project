@@ -43,6 +43,11 @@ def set_seed(seed_value=42):
     torch.cuda.manual_seed_all(seed_value)
 
 
+def calc_class_weights(train_labels):
+    weights = []
+    for t in train_labels:
+        print(t)
+    
 
 def train(model, optimizer,train_labels, scheduler, train_dataloader, val_dataloader=None, epochs=4, evaluation=False):
     """Train the BertClassifier model.
@@ -52,9 +57,6 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
     print(np.unique(train_labels.values))
     print(np.array(train_labels.values))
     
-    labs = train_labels.cpu().detach().numpy()
-    unique = np.unique(labs ,axis=0)
-    # print(np.array(train_labels).shape)
     y_integers = np.argmax(train_labels, axis=1)
     print(y_integers.shape)
     class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_integers), y=y_integers.cpu().detach().numpy())
@@ -310,12 +312,13 @@ else:
     pickle.dump(test_dataloader, open("./data/test_dataloader.pkl", "wb"))
 
 
-print("created dataset")
-bert_classifier, optimizer, scheduler = initialize()
-print("initialized model")
+calc_class_weights(train_labels)
+# print("created dataset")
+# bert_classifier, optimizer, scheduler = initialize()
+# print("initialized model")
  
-# train and evaluate model 
-y_actual, y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
+# # train and evaluate model 
+# y_actual, y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
 
 # load model
 # model = BertClassifier(outputDim=6)
