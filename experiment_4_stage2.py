@@ -13,17 +13,7 @@ from create_dataset import createDataset, preprocessForBERT, loadData, splitData
 from matplotlib import pyplot as plt
 import os
 
-def initialize():
-
-    bert_classifier = BertClassifier(outputDim=8)            
-    bert_classifier.to(device)
-    bert_classifier.load_state_dict(torch.load("./saved_models/exp4_stage1.model", map_location=torch.device('cpu')))
-    bert_classifier.classifier = nn.Sequential(
-            nn.Linear(786, 256),
-            nn.ReLU(),
-            nn.Linear(256, 6)
-        )
-
+def initialize(bert_classifier):
     # optimiser (note, only classifier/finetuning weights will be modified)
     optimizer = AdamW(bert_classifier.parameters(), lr = 5e-5, eps=1e-8)
 
@@ -32,7 +22,7 @@ def initialize():
     # scheduler
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps = 0, num_training_steps = len(train_dataloader) * epochs)
     
-    return bert_classifier, optimizer, scheduler
+    return optimizer, scheduler
 
 
 
@@ -305,10 +295,16 @@ else:
     pickle.dump(val_dataloader, open("./data/val_dataloader_condition.pkl", "wb"))
     pickle.dump(test_dataloader, open("./data/test_dataloader_condition.pkl", "wb"))
 
-
-
+bert_classifier = BertClassifier(outputDim=8)            
+bert_classifier.load_state_dict(torch.load("./saved_models/exp4_stage1.model", map_location=torch.device('cpu')))
+bert_classifier.to(device)
+bert_classifier.classifier = nn.Sequential(
+        nn.Linear(786, 256),
+        nn.ReLU(),
+        nn.Linear(256, 6)
+    )
 print("created dataset")
-bert_classifier, optimizer, scheduler = initialize()
+optimizer, scheduler = initialize(bert_classifier)
 print("initialized model")
  
 # train and evaluate model 
