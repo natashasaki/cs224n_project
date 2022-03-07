@@ -18,7 +18,7 @@ def initialize():
     bert_classifier = BertClassifier(outputDim=8)            
     bert_classifier.load_state_dict(torch.load("./saved_models/exp4_stage1.model", map_location=torch.device('cpu')))
     bert_classifier.classifier = nn.Sequential(
-            nn.Linear(786, 256),
+            nn.Linear(768, 256),
             nn.ReLU(),
             nn.Linear(256, 6)
         )
@@ -32,7 +32,7 @@ def initialize():
     # scheduler
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps = 0, num_training_steps = len(train_dataloader) * epochs)
     
-    return optimizer, scheduler
+    return bert_classifier, optimizer, scheduler
 
 
 
@@ -204,7 +204,7 @@ def evaluate(model, val_dataloader):
     print(classification_report(np.array(labels_all), np.array(preds_all), labels=[0, 1, 2, 3,4,5], target_names = ["depression", "anxiety", "bipolar", "addiction", "adhd", "none"]))
     cM = confusion_matrix(labels_all, preds_all)
 
-    displayClasses = [i for i in range(8)]
+    displayClasses = [i for i in range(6)]
 
     disp = ConfusionMatrixDisplay(confusion_matrix=cM, display_labels=displayClasses)
     disp.plot()
