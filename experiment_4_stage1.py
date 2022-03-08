@@ -44,10 +44,13 @@ def set_seed(seed_value=42):
 
 
 def calc_class_weights(train_labels):
-    weights = []
+    weights = [0, 0, 0, 0, 0, 0, 0, 0]
     for t in train_labels:
-        print(t)
-    
+        t.tolist()
+        for i in range(len(weights)):
+            weights[i] += t[i]
+    result = [1/x for x in weights]
+    return (torch.FloatTensor(result))
 
 def train(model, optimizer,train_labels, scheduler, train_dataloader, val_dataloader=None, epochs=4, evaluation=False):
     """Train the BertClassifier model.
@@ -57,16 +60,12 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
     print(np.unique(train_labels.values))
     print(np.array(train_labels.values))
     
-    y_integers = np.argmax(train_labels, axis=1)
-    print(y_integers.shape)
-    class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_integers), y=y_integers.cpu().detach().numpy())
-    print(class_weights)
-    weights= torch.tensor(class_weights,dtype=torch.float)
+    weights = calc_class_weights(train_labels)
 
     # push to GPU
     weights = weights.to(device)
 
-    loss_fn = nn.CrossEntropyLoss(weight=weights)
+    loss_fn = nn.MultiLabelSoftMarginLoss(weight=weights)
 
     for epoch_i in range(epochs):
         # =======================================
@@ -92,8 +91,7 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
             batch_counts +=1
             # Load batch to GPU
             b_input_ids, b_attn_mask, b_labels = tuple(t.to(device) for t in batch)
-            labels=b_labels.argmax(dim=1)
-            labels = labels.reshape((labels.shape[0]))
+            labels=b_labels
             y_actual.append(labels)
             
             # Zero out any previously calculated gradients
@@ -170,15 +168,14 @@ def evaluate(model, val_dataloader):
     # Tracking variables
     val_accuracy = []
     val_loss = []
-    loss_fn = nn.CrossEntropyLoss()
+    loss_fn = nn.MultiLabelEntropyLoss()
     labels_all = []
     preds_all = []
     # For each batch in our validation set...
     for batch in val_dataloader:
         # Load batch to GPU
         b_input_ids, b_attn_mask, b_labels = tuple(t.to(device) for t in batch)
-        labels=b_labels.argmax(dim=1)
-        labels = labels.reshape((labels.shape[0]))
+        labels=b_labels
 
         # Compute logits
         with torch.no_grad():
@@ -314,15 +311,15 @@ else:
 
 calc_class_weights(train_labels)
 # print("created dataset")
-# bert_classifier, optimizer, scheduler = initialize()
+bert_classifier, optimizer, scheduler = initialize()
 # print("initialized model")
  
 # # train and evaluate model 
-# y_actual, y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
+y_actual, y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
 
 # load model
-# model = BertClassifier(outputDim=6)
-# model.load_state_dict(torch.load("./saved_models/most_recent_exp4_2.model", map_location=torch.device('cpu')))
-# model.to(device)
-# print(evaluate(model, val_dataloader))
+model = BertClassifier(outputDim=6)
+model.load_state_dict(torch.load("./saved_models/exp4_stage1.model", map_location=torch.device('cpu')))
+model.to(device)
+print(evaluate(model, val_dataloader))
 
