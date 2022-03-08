@@ -56,7 +56,7 @@ def loadData():
       Reads in data from csv file
     """
     header_list = ["text", "condition_label", "emotion_label"]
-    data = pd.read_csv("./dataset/dataset_labelled_balanced.csv", on_bad_lines='skip', names=header_list)
+    data = pd.read_csv("./dataset/dataset_partial.csv", on_bad_lines='skip', names=header_list)
         # data = pd.read_csv("./dataset/dataset.csv", on_bad_lines='skip', names=header_list)
 
     print(data.head())
@@ -96,15 +96,16 @@ def splitData(data, condition=True):
     # train-val-test split: 80-10-10
     X_train, X_test, y_train, y_test = train_test_split(data['text'], data[label], test_size = 0.2, random_state = 123)
     X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size = 0.5, random_state = 123)
-    y_train= np.array(y_train.apply(lambda x: np.array(literal_eval(x)), 0).values.tolist())
+    print(type(literal_eval(y_train[8])))
+    y_train = np.array(y_train.apply(lambda x: np.array(literal_eval(x)), 0).values.tolist())
     y_val = np.array(y_val.apply(lambda x: np.array(literal_eval(x)), 0).values.tolist())
-    y_test= np.array(y_test.apply(lambda x: np.array(literal_eval(x)), 0).values.tolist())
+    y_test = np.array(y_test.apply(lambda x: np.array(literal_eval(x)), 0).values.tolist())
     
     return X_train, y_train, X_val, y_val, X_test, y_test
 
 def createDataset(inputs, masks, labels, batch_size=32):
     data = TensorDataset(inputs, masks, labels)
     sampler = RandomSampler(data)
-    dataloader = DataLoader(data, sampler = sampler, batch_size = batch_size)
+    dataloader = DataLoader(data, sampler = sampler, batch_size=batch_size)
     return dataloader
 

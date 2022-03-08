@@ -14,15 +14,17 @@ from matplotlib import pyplot as plt
 import os
 
 def initialize():
-    # bert classifier #BertForSequenceClassification.from_pretrained num_labels=5,
-                                                    #   output_attentions=False,
-                                                    #   output_hidden_states=False)
-    bert_classifier = BertClassifier(outputDim=8)
-                                                     
-    #BertClassifier(outputDim=5)
+    # optimiser (note, only classifier/finetuning weights will be modified)
+    bert_classifier = BertClassifier(outputDim=8)            
+    bert_classifier.load_state_dict(torch.load("./saved_models/exp4_stage1.model", map_location=torch.device('cpu')))
+    bert_classifier.classifier = nn.Sequential(
+            nn.Linear(768, 256),
+            nn.ReLU(),
+            nn.Linear(256, 6)
+        )
+    
     bert_classifier.to(device)
 
-    # optimiser (note, only classifier/finetuning weights will be modified)
     optimizer = AdamW(bert_classifier.parameters(), lr = 5e-5, eps=1e-8)
 
     epochs = 3 #TODO: consider changing -- recommended # epochs for BERT between 2 and 4 (Sun et al., 2020)
@@ -43,14 +45,6 @@ def set_seed(seed_value=42):
     torch.cuda.manual_seed_all(seed_value)
 
 
-def calc_class_weights(train_labels):
-    weights = [0, 0, 0, 0, 0, 0, 0, 0]
-    for t in train_labels:
-        t.tolist()
-        for i in range(len(weights)):
-            weights[i] += t[i]
-    result = [1/x for x in weights]
-    return (torch.FloatTensor(result))
 
 def train(model, optimizer,train_labels, scheduler, train_dataloader, val_dataloader=None, epochs=4, evaluation=False):
     """Train the BertClassifier model.
@@ -60,12 +54,16 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
     print(np.unique(train_labels.values))
     print(np.array(train_labels.values))
     
-    weights = calc_class_weights(train_labels)
+    y_integers = np.argmax(train_labels, axis=1)
+    print(y_integers.shape)
+    class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_integers), y=y_integers.cpu().detach().numpy())
+    print(class_weights)
+    weights= torch.tensor(class_weights,dtype=torch.float)
 
     # push to GPU
     weights = weights.to(device)
 
-    loss_fn = nn.MultiLabelSoftMarginLoss(weight=weights)
+    loss_fn = nn.CrossEntropyLoss(weight=weights)
 
     for epoch_i in range(epochs):
         # =======================================
@@ -91,7 +89,8 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
             batch_counts +=1
             # Load batch to GPU
             b_input_ids, b_attn_mask, b_labels = tuple(t.to(device) for t in batch)
-            labels=b_labels
+            labels=b_labels.argmax(dim=1)
+            labels = labels.reshape((labels.shape[0]))
             y_actual.append(labels)
             
             # Zero out any previously calculated gradients
@@ -147,7 +146,7 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
             print(f"{epoch_i + 1:^7} | {'-':^7} | {avg_train_loss:^12.6f} | {val_loss:^10.6f} | {val_accuracy:^9.2f} | {time_elapsed:^9.2f}")
             print("-"*70)
 
-        torch.save(model.state_dict(), './saved_models/exp4_stage1.model')
+        torch.save(model.state_dict(), './saved_models/exp4_stage2.model')
         print("\n")
 
     print("Training complete!")
@@ -168,14 +167,15 @@ def evaluate(model, val_dataloader):
     # Tracking variables
     val_accuracy = []
     val_loss = []
-    loss_fn = nn.MultiLabelEntropyLoss()
+    loss_fn = nn.CrossEntropyLoss()
     labels_all = []
     preds_all = []
     # For each batch in our validation set...
     for batch in val_dataloader:
         # Load batch to GPU
         b_input_ids, b_attn_mask, b_labels = tuple(t.to(device) for t in batch)
-        labels=b_labels
+        labels=b_labels.argmax(dim=1)
+        labels = labels.reshape((labels.shape[0]))
 
         # Compute logits
         with torch.no_grad():
@@ -197,18 +197,15 @@ def evaluate(model, val_dataloader):
 
     # Compute the average accuracy and loss over the validation set.
     val_loss = np.mean(val_loss)
-    val_accuracy = np.mean(val_accuracy)    
-    print(labels_all)
-    print(preds_all)
-    # [anger, anticipation, disgust, feat, joy, sadness, surprise, trust]
-    print(classification_report(np.array(labels_all), np.array(preds_all), labels=[0, 1, 2, 3, 4, 5, 6, 7], target_names = ["anger", "anticipation", "disgust", "fear", "joy", "sadness", "surprise", "trust"]))
+    val_accuracy = np.mean(val_accuracy)
+    print(classification_report(np.array(labels_all), np.array(preds_all), labels=[0, 1, 2, 3,4,5], target_names = ["depression", "anxiety", "bipolar", "addiction", "adhd", "none"]))
     cM = confusion_matrix(labels_all, preds_all)
 
-    displayClasses = [i for i in range(8)]
+    displayClasses = [i for i in range(6)]
 
     disp = ConfusionMatrixDisplay(confusion_matrix=cM, display_labels=displayClasses)
     disp.plot()
-    disp.figure_.savefig('confusion_most_recent_exp4.png', dpi=300)
+    disp.figure_.savefig('confusion_exp4_stage2_posts_test.png', dpi=300)
 
     return val_loss, val_accuracy    
 
@@ -269,24 +266,21 @@ def make_predictions(model, dataloader):
     return probs
 
 
-
-
-
 ############### MAIN CODE ###############
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-if os.path.exists("./data/train_dataloader.pkl"):
-    train_dataloader = pickle.load(open("./data/train_dataloader.pkl", "rb"))
-    val_dataloader = pickle.load(open("./data/val_dataloader.pkl", "rb"))
-    test_dataloader = pickle.load(open("./data/test_dataloader.pkl", "rb"))
+if os.path.exists("./data/train_dataloader_exp4_2.pkl"):
+    train_dataloader = pickle.load(open("./data/train_dataloader_exp4_2.pkl", "rb"))
+    val_dataloader = pickle.load(open("./data/val_dataloader_exp4_2.pkl", "rb"))
+    test_dataloader = pickle.load(open("./data/test_dataloader_exp4_2.pkl", "rb"))
 
-    train_labels = pickle.load(open("./data/train_labels.pkl", "rb"))
-    val_labels = pickle.load(open("./data/val_labels.pkl", "rb"))
-    test_labels = pickle.load(open("./data/test_labels.pkl", "rb"))
+    train_labels = pickle.load(open("./data/train_labels_exp4_2.pkl", "rb"))
+    val_labels = pickle.load(open("./data/val_labels_exp4_2.pkl", "rb"))
+    test_labels = pickle.load(open("./data/test_labels_exp4_2.pkl", "rb"))
 else:
     set_seed(123)
     data = loadData()
-    X_train, y_train, X_val, y_val, X_test, y_test = splitData(data, condition=False)
+    X_train, y_train, X_val, y_val, X_test, y_test = splitData(data)
 
     # pre-process data for BERT
     MAX_LEN = 512
@@ -301,25 +295,23 @@ else:
     val_dataloader = createDataset(val_inputs, val_masks, val_labels, batch_size=32)
     test_dataloader = createDataset(test_inputs, test_masks, test_labels, batch_size=32)
 
-    pickle.dump(train_labels, open("./data/train_labels.pkl", "wb"))
-    pickle.dump(val_labels, open("./data/val_labels.pkl", "wb"))
-    pickle.dump(test_labels, open("./data/test_labels.pkl", "wb"))
-    pickle.dump(train_dataloader, open("./data/train_dataloader.pkl", "wb"))
-    pickle.dump(val_dataloader, open("./data/val_dataloader.pkl", "wb"))
-    pickle.dump(test_dataloader, open("./data/test_dataloader.pkl", "wb"))
+    pickle.dump(train_labels, open("./data/train_labels_exp4_2.pkl", "wb"))
+    pickle.dump(val_labels, open("./data/val_labels_exp4_2.pkl", "wb"))
+    pickle.dump(test_labels, open("./data/test_labels_exp4_2.pkl", "wb"))
+    pickle.dump(train_dataloader, open("./data/train_dataloader_exp4_2.pkl", "wb"))
+    pickle.dump(val_dataloader, open("./data/val_dataloader_exp4_2.pkl", "wb"))
+    pickle.dump(test_dataloader, open("./data/test_dataloader_exp4_2.pkl", "wb"))
 
-
-calc_class_weights(train_labels)
-# print("created dataset")
-bert_classifier, optimizer, scheduler = initialize()
-# print("initialized model")
+print("created dataset")
+# bert_classifier, optimizer, scheduler = initialize()
+print("initialized model")
  
-# # train and evaluate model 
-y_actual, y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
+# train and evaluate model 
+# y_actual, y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
 
-# load model
 model = BertClassifier(outputDim=6)
-model.load_state_dict(torch.load("./saved_models/exp4_stage1.model", map_location=torch.device('cpu')))
+model.load_state_dict(torch.load("./saved_models/exp4_stage2.model", map_location=torch.device('cpu')))
 model.to(device)
 print(evaluate(model, val_dataloader))
+print(evaluate(model, test_dataloader))
 
