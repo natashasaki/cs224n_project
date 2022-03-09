@@ -247,14 +247,14 @@ def make_predictions(model, dataloader):
 ############### MAIN CODE ###############
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-if os.path.exists("./data/train_dataloader_exp4_1.pkl"):
-    train_dataloader = pickle.load(open("./data/train_dataloader_exp4_1.pkl", "rb"))
-    val_dataloader = pickle.load(open("./data/val_dataloader_exp4_1.pkl", "rb"))
-    test_dataloader = pickle.load(open("./data/test_dataloader_exp4_1.pkl", "rb"))
+if os.path.exists("./data/train_dataloader_exp4_1_64.pkl"):
+    train_dataloader = pickle.load(open("./data/train_dataloader_exp4_1_64.pkl", "rb"))
+    val_dataloader = pickle.load(open("./data/val_dataloader_exp4_1_64.pkl", "rb"))
+    test_dataloader = pickle.load(open("./data/test_dataloader_exp4_1_64.pkl", "rb"))
 
-    train_labels = pickle.load(open("./data/train_labels_exp4_1.pkl", "rb"))
-    val_labels = pickle.load(open("./data/val_labels_exp4_1.pkl", "rb"))
-    test_labels = pickle.load(open("./data/test_labels_exp4_1.pkl", "rb"))
+    train_labels = pickle.load(open("./data/train_labels_exp4_1_64.pkl", "rb"))
+    val_labels = pickle.load(open("./data/val_labels_exp4_1_64.pkl", "rb"))
+    test_labels = pickle.load(open("./data/test_labels_exp4_1_64.pkl", "rb"))
 else:
     set_seed(123)    # Set seed for reproducibility
     data = loadData()
@@ -270,24 +270,24 @@ else:
     val_labels = torch.tensor(y_val)
     test_labels = torch.tensor(y_test)
         
-    train_dataloader = createDataset(train_inputs, train_masks, train_labels, batch_size=32)
-    val_dataloader = createDataset(val_inputs, val_masks, val_labels, batch_size=32)
-    test_dataloader = createDataset(test_inputs, test_masks, test_labels, batch_size=32)
+    train_dataloader = createDataset(train_inputs, train_masks, train_labels, batch_size=64)
+    val_dataloader = createDataset(val_inputs, val_masks, val_labels, batch_size=64)
+    test_dataloader = createDataset(test_inputs, test_masks, test_labels, batch_size=64)
     
-    pickle.dump(train_labels, open("./data/train_labels_exp4_1.pkl", "wb"))
-    pickle.dump(val_labels, open("./data/val_labels_exp4_1.pkl", "wb"))
-    pickle.dump(test_labels, open("./data/test_labels_exp4_1.pkl", "wb"))
-    pickle.dump(train_dataloader, open("./data/train_dataloader_exp4_1.pkl", "wb"))
-    pickle.dump(val_dataloader, open("./data/val_dataloader_exp4_1.pkl", "wb"))
-    pickle.dump(test_dataloader, open("./data/test_dataloader_exp4_1.pkl", "wb"))
+    pickle.dump(train_labels, open("./data/train_labels_exp4_1_64.pkl", "wb"))
+    pickle.dump(val_labels, open("./data/val_labels_exp4_1_64.pkl", "wb"))
+    pickle.dump(test_labels, open("./data/test_labels_exp4_1_64.pkl", "wb"))
+    pickle.dump(train_dataloader, open("./data/train_dataloader_exp4_1_64.pkl", "wb"))
+    pickle.dump(val_dataloader, open("./data/val_dataloader_exp4_1_64.pkl", "wb"))
+    pickle.dump(test_dataloader, open("./data/test_dataloader_exp4_1_64.pkl", "wb"))
 print("created dataset")
 
 learning_rate = 5e-4
-# bert_classifier, optimizer, scheduler = initialize(learning_rate)
+bert_classifier, optimizer, scheduler = initialize(learning_rate)
 print("initialized model")
  
 # train and evaluate model 
-# y_actual, y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
+y_actual, y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=1, evaluation=True)
 
 # load model if saved prioir
 model = BertClassifier(outputDim=8)
@@ -295,7 +295,7 @@ model.load_state_dict(torch.load("./saved_models/exp4_stage1.model")) #, map_loc
 model.to(device)
 
 print("calculating test set metrics")
-# print(evaluate(model, test_dataloader, "test", "1"))
+print(evaluate(model, test_dataloader, "test", "1"))
 print("done")
 
 print("calculating val set metrics")

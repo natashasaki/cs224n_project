@@ -13,6 +13,7 @@ class BertClassifier(nn.Module):
     # Linear layer with ReLU
     self.classifier = nn.Sequential(
         nn.Linear(D_in, H),
+        nn.Dropout(.2),
         nn.ReLU(),
         nn.Linear(H, D_out)
     )

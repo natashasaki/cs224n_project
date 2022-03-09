@@ -19,13 +19,14 @@ def initialize():
     bert_classifier.load_state_dict(torch.load("./saved_models/exp4_stage1.model", map_location=torch.device('cpu')))
     bert_classifier.classifier = nn.Sequential(
             nn.Linear(768, 256),
+            nn.Dropout(.2),
             nn.ReLU(),
             nn.Linear(256, 6)
         )
     
     bert_classifier.to(device)
 
-    optimizer = AdamW(bert_classifier.parameters(), lr = 5e-5, eps=1e-8)
+    optimizer = AdamW(bert_classifier.parameters(), lr = 1e-3, eps=1e-8)
 
     epochs = 3 #TODO: consider changing -- recommended # epochs for BERT between 2 and 4 (Sun et al., 2020)
 
@@ -207,12 +208,14 @@ def evaluate(model, val_dataloader):
     disp.plot()
     disp.figure_.savefig('confusion_exp4_stage2_posts_test.png', dpi=300)
 
+    # evaluate_roc(preds_all, labels_all)
+    
     return val_loss, val_accuracy    
 
 from sklearn.metrics import accuracy_score, roc_curve, auc
 
-def evaluate_roc(probs, y_true):
-    preds = probs.argmax(axis=1) #probs[:, 1]
+def evaluate_roc(preds_all, y_true):
+    preds = preds_all #probs[:, 1]
     print(preds)
     print(y_true)
     fpr, tpr, threshold = roc_curve(y_true.detach().numpy(), preds.detach().numpy())
@@ -233,7 +236,7 @@ def evaluate_roc(probs, y_true):
     plt.ylim([0, 1])
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
-    plt.show()
+    plt.savefig('auroc_exp4_stage2_posts_val', dpi=300)
 
 import torch.nn.functional as F
 
@@ -291,27 +294,27 @@ else:
     train_labels = torch.tensor(y_train)
     val_labels = torch.tensor(y_val)
     test_labels = torch.tensor(y_test)
-    train_dataloader = createDataset(train_inputs, train_masks, train_labels, batch_size=32)
-    val_dataloader = createDataset(val_inputs, val_masks, val_labels, batch_size=32)
-    test_dataloader = createDataset(test_inputs, test_masks, test_labels, batch_size=32)
+    train_dataloader = createDataset(train_inputs, train_masks, train_labels, batch_size=64)
+    val_dataloader = createDataset(val_inputs, val_masks, val_labels, batch_size=64)
+    test_dataloader = createDataset(test_inputs, test_masks, test_labels, batch_size=64)
 
-    pickle.dump(train_labels, open("./data/train_labels_exp4_2.pkl", "wb"))
-    pickle.dump(val_labels, open("./data/val_labels_exp4_2.pkl", "wb"))
-    pickle.dump(test_labels, open("./data/test_labels_exp4_2.pkl", "wb"))
-    pickle.dump(train_dataloader, open("./data/train_dataloader_exp4_2.pkl", "wb"))
-    pickle.dump(val_dataloader, open("./data/val_dataloader_exp4_2.pkl", "wb"))
-    pickle.dump(test_dataloader, open("./data/test_dataloader_exp4_2.pkl", "wb"))
+    pickle.dump(train_labels, open("./data/train_labels_exp4_2_64.pkl", "wb"))
+    pickle.dump(val_labels, open("./data/val_labels_exp4_2_64.pkl", "wb"))
+    pickle.dump(test_labels, open("./data/test_labels_exp4_2_64.pkl", "wb"))
+    pickle.dump(train_dataloader, open("./data/train_dataloader_exp4_2_64.pkl", "wb"))
+    pickle.dump(val_dataloader, open("./data/val_dataloader_exp4_2_64.pkl", "wb"))
+    pickle.dump(test_dataloader, open("./data/test_dataloader_exp4_2_64.pkl", "wb"))
 
 print("created dataset")
 # bert_classifier, optimizer, scheduler = initialize()
 print("initialized model")
  
 # train and evaluate model 
-# y_actual, y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=2, evaluation=True)
+# y_actual, y_preds = train(bert_classifier, optimizer, train_labels, scheduler, train_dataloader, val_dataloader, epochs=3, evaluation=True)
 
 model = BertClassifier(outputDim=6)
 model.load_state_dict(torch.load("./saved_models/exp4_stage2.model", map_location=torch.device('cpu')))
 model.to(device)
-print(evaluate(model, val_dataloader))
+# print(evaluate(model, val_dataloader))
 print(evaluate(model, test_dataloader))
 
