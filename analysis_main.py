@@ -64,6 +64,7 @@ def evaluate(model, val_dataloader):
 
         # Get the predictions
         preds = torch.argmax(logits, dim=1).flatten()
+        print(preds.cpu().numpy().tolist())
         preds_all = preds_all + preds.cpu().numpy().tolist()
 
     print(np.array(preds_all))
@@ -74,8 +75,8 @@ def evaluate(model, val_dataloader):
 ############### MAIN CODE ###############
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-if os.path.exists(".\data\\analysis_dataloader.pkl"):
-    train_dataloader = pickle.load(open(".\data\\analysis_dataloader.pkl", "rb"))
+if os.path.exists("./data/analysis_dataloader.pkl"):
+    train_dataloader = pickle.load(open("./data/analysis_dataloader.pkl", "rb"))
 else:
     set_seed(123)
     data = loadData()
@@ -87,15 +88,23 @@ else:
     print(len(train_inputs))
     train_labels = torch.tensor(y_train)
     train_dataloader = createDataset(train_inputs, train_masks, train_labels, batch_size=64)
-    pickle.dump(train_dataloader, open(".\data\\analysis_dataloader.pkl", "wb"))
+    pickle.dump(train_dataloader, open("./data/analysis_dataloader.pkl", "wb"))
 
 print("created dataset", flush=True)
 
 
 model = BertClassifier(outputDim=6)
-model.load_state_dict(torch.load(".\saved_models\exp4_stage2.model", map_location=torch.device('cpu')))
+model.load_state_dict(torch.load("./saved_models/exp4_stage2.model", map_location=torch.device('cpu')))
 model.to(device)
-print(evaluate(model, train_dataloader))
+preds = evaluate(model, train_dataloader)
+
+header_list = ["text", "subreddit", "time"]
+data = pd.read_csv("./data/posts_analysis.csv", on_bad_lines='skip', names=header_list)
+data.dropna(inplace=True)
+
+data.insert(3, "Predictions", preds)
+data.to_csv("analysis_predictions.csv")
+
 
 # # Get the predictions
 # preds = torch.argmax(logits, dim=1).flatten()
