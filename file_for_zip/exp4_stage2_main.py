@@ -24,15 +24,15 @@ def initialize():
         )
     bert_classifier.to(device)
 
-    optimizer = AdamW(bert_classifier.parameters(), lr = 1e-3, eps=1e-8)
+    optim = AdamW(bert_classifier.parameters(), lr = 1e-3, eps=1e-8)
     epochs = 3
-    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps = 0, num_training_steps = len(train_dataloader) * epochs)
+    lr_schedule = get_linear_schedule_with_warmup(optimizer, num_warmup_steps = 0, num_training_steps = len(train_dataloader) * epochs)
     
-    return bert_classifier, optimizer, scheduler
+    return bert_classifier, optim, lr_schedule
 
 
 
-def set_seed(seed_value=42):
+def set_seed(seed_value=25): # so we can compare + reproduce certain results :)
     random.seed(seed_value)
     np.random.seed(seed_value)
     torch.manual_seed(seed_value)
@@ -41,7 +41,7 @@ def set_seed(seed_value=42):
 
 
 def train(model, optimizer,train_labels, scheduler, train_dataloader, val_dataloader=None, epochs=4, evaluation=False):
-    print("Start training...\n")
+    print("Started Training Model...\n")
     print(np.unique(train_labels.values))
     print(np.array(train_labels.values))
     
@@ -57,7 +57,7 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
 
     for epoch_i in range(epochs):
         print(f"{'Epoch':^7} | {'Batch':^7} | {'Train Loss':^12} | {'Val Loss':^10} | {'Val Acc':^9} | {'Elapsed':^9}")
-        print("-"*70)
+        print("-"*60)
         t0_epoch, t0_batch = time.time(), time.time()
 
         total_loss, batch_loss, batch_counts = 0, 0, 0
@@ -99,7 +99,7 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
 
         avg_train_loss = total_loss / len(train_dataloader)
 
-        print("-"*70)
+        print("-"*60)
         if evaluation == True:
             val_loss, val_accuracy = evaluate(model, val_dataloader)
             time_elapsed = time.time() - t0_epoch
@@ -114,7 +114,7 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
 
 
 def evaluate(model, val_dataloader):
-    model.eval()
+    model.eval() #prevent using dropout!
     val_accuracy = []
     val_loss = []
     loss_fn = nn.CrossEntropyLoss()
@@ -165,7 +165,7 @@ if os.path.exists("./data/train_dataloader_exp4_2.pkl"):
     val_labels = pickle.load(open("./data/val_labels_exp4_2.pkl", "rb"))
     test_labels = pickle.load(open("./data/test_labels_exp4_2.pkl", "rb"))
 else:
-    set_seed(123)
+    set_seed(25)
     data = loadData()
     X_train, y_train, X_val, y_val, X_test, y_test = splitData(data)
 
