@@ -15,17 +15,15 @@ def initialize():
     bert_classifier = BertClassifier(outputDim=6)
     bert_classifier.to(device)
 
-    optimizer = AdamW(bert_classifier.parameters(), lr = 5e-5, eps=1e-8)
+    optim = AdamW(bert_classifier.parameters(), lr = 5e-5, eps=1e-8)
     epochs = 3
-    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps = 0, num_training_steps = len(train_dataloader) * epochs)
+    lr_schedule = get_linear_schedule_with_warmup(optim, num_warmup_steps = 0, num_training_steps = len(train_dataloader) * epochs)
     
-    return bert_classifier, optimizer, scheduler
+    return bert_classifier, optim, lr_schedule
 
 
 
-def set_seed(seed_value=42):
-    """Set seed for reproducibility.
-    """
+def set_seed(seed_value=25): # so can compare results
     random.seed(seed_value)
     np.random.seed(seed_value)
     torch.manual_seed(seed_value)
@@ -34,7 +32,7 @@ def set_seed(seed_value=42):
 
 
 def train(model, optimizer,train_labels, scheduler, train_dataloader, val_dataloader=None, epochs=4, evaluation=False):
-    print("Start training...\n")
+    print("Started Training Model!\n")
     print(np.unique(train_labels.values))
     print(np.array(train_labels.values))
     
@@ -52,7 +50,7 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
 
     for epoch_i in range(epochs):
         print(f"{'Epoch':^7} | {'Batch':^7} | {'Train Loss':^12} | {'Val Loss':^10} | {'Val Acc':^9} | {'Elapsed':^9}")
-        print("-"*70)
+        print("-"*60)
 
         t0_epoch, t0_batch = time.time(), time.time()
 
@@ -64,14 +62,14 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
 
         for step, batch in enumerate(train_dataloader):
             batch_counts +=1
-            b_input_ids, b_attn_mask, b_labels = tuple(t.to(device) for t in batch)
-            labels=b_labels.argmax(dim=1)
+            ids, masks, labels = tuple(t.to(device) for t in batch)
+            labels=labels.argmax(dim=1)
             labels = labels.reshape((labels.shape[0]))
             y_actual.append(labels)
 
             model.zero_grad()
 
-            logits = model(b_input_ids, b_attn_mask)
+            logits = model(ids, masks)
             y_preds.append(logits)
 
             loss = loss_fn(logits, labels)
@@ -95,8 +93,8 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
 
         avg_train_loss = total_loss / len(train_dataloader)
 
-        print("-"*70)
-        if evaluation == True:
+        print("-"*60)
+        if evaluation:
             print("val set: ")
             val_loss, val_accuracy = evaluate(model, val_dataloader)
             time_elapsed = time.time() - t0_epoch
@@ -107,7 +105,7 @@ def train(model, optimizer,train_labels, scheduler, train_dataloader, val_datalo
         torch.save(model.state_dict(), './saved_models/most_recent_baseline.model')
         print("\n")
 
-    print("Training complete!")
+    print("Model Training Done!")
     print(y_actual)
     print(y_preds)
     return y_actual, y_preds
@@ -122,12 +120,12 @@ def evaluate(model, val_dataloader):
     labels_all = []
     preds_all = []
     for batch in val_dataloader:
-        b_input_ids, b_attn_mask, b_labels = tuple(t.to(device) for t in batch)
-        labels=b_labels.argmax(dim=1)
+        ids, masks, labels = tuple(t.to(device) for t in batch)
+        labels=labels.argmax(dim=1)
         labels = labels.reshape((labels.shape[0]))
 
         with torch.no_grad():
-            logits = model(b_input_ids, b_attn_mask)
+            logits = model(ids, masks)
 
         loss = loss_fn(logits, labels)
         val_loss.append(loss.item())
@@ -155,18 +153,18 @@ import torch.nn.functional as F
 def make_predictions(model, dataloader):
     model.eval()
 
-    all_logits = []
+    preds = []
 
     for batch in dataloader:
-        b_input_ids, b_attn_mask = tuple(t.to(device) for t in batch)[:2]
+        ids, masks = tuple(t.to(device) for t in batch)[:2]
 
         with torch.no_grad():
-            logits = model(b_input_ids, b_attn_mask)
-        all_logits.append(logits)
+            logits = model(ids, masks)
+        preds.append(logits)
     
-    all_logits = torch.cat(all_logits, dim=0)
+    preds = torch.cat(preds, dim=0)
 
-    probs = F.softmax(all_logits, dim=1).cpu().numpy()
+    probs = F.softmax(preds, dim=1).cpu().numpy()
 
     return probs
 
@@ -175,7 +173,7 @@ def make_predictions(model, dataloader):
 ############### MAIN CODE ###############
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-set_seed(123)
+set_seed(25)
 data = loadData()
 X_train, y_train, X_val, y_val, X_test, y_test = splitData(data)
 
