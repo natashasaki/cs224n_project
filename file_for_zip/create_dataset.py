@@ -12,7 +12,7 @@ def text_preprocessing(text):
     return text
 
 
-def preprocessForBERT(data, max_len):
+def preprocessForBERT(data, max_len): # max len of BERT is 512, but added for customization
   input_ids = []
   attention_masks = []
   tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case = True)
@@ -36,7 +36,7 @@ def preprocessForBERT(data, max_len):
 
 def loadData(): 
     """
-      Reads in data from csv file
+      Reads in dataset file (csv)
     """
     header_list = ["text", "condition_label", "emotion_label"]
     data = pd.read_csv("./dataset/dataset_partial.csv", on_bad_lines='skip', names=header_list)
@@ -66,7 +66,7 @@ def loadData():
 
 def splitData(data, condition=True):
     """
-      Splits dataset into train, dev, test set
+      Splits dataset into train, dev, test set: 80-10-10
     """
 
     if condition:
