@@ -13,20 +13,21 @@ from create_dataset import createDataset, preprocessForBERT, loadData, splitData
 from matplotlib import pyplot as plt
 import os
 
+# we initialize model to get the scheduler
 def initialize(learning_rate=5e-5):
-    bert_classifier = BertClassifier(outputDim=8)
+    bert_classifier = BertClassifier(outputDim=8) # 8 emotions to classify
     bert_classifier.to(device)
 
-    optimizer = AdamW(bert_classifier.parameters(), lr = learning_rate, eps=1e-8)
+    optim = AdamW(bert_classifier.parameters(), lr = learning_rate, eps=1e-8)
     epochs = 2
-    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps = 0, num_training_steps = len(train_dataloader) * epochs)
+    lr_schedule = get_linear_schedule_with_warmup(optimizer, num_warmup_steps = 0, num_training_steps = len(train_dataloader) * epochs)
     
-    return bert_classifier, optimizer, scheduler
+    return bert_classifier, optim, lr_schedule
 
 
 
-def set_seed(seed_value=42):
-    """Set seed for reproducibility.
+def set_seed(seed_value=25):
+    """Use seed so we can compare and reproducre results
     """
     random.seed(seed_value)
     np.random.seed(seed_value)
@@ -34,9 +35,9 @@ def set_seed(seed_value=42):
     torch.cuda.manual_seed_all(seed_value)
 
 def train(model, optimizer, train_labels, scheduler, train_dataloader, val_dataloader=None, epochs=4, evaluation=False):
-    print("Start training...\n")
+    print("Started training model...\n")
 
-    class_weights = [1, 1, 1, 1, 1, 1, 1, 1]
+    class_weights = [1, 1, 1, 1, 1, 1, 1, 1] 
     weights= torch.tensor(class_weights,dtype=torch.float)
     print(weights)
     weights = weights.to(device)
@@ -44,7 +45,7 @@ def train(model, optimizer, train_labels, scheduler, train_dataloader, val_datal
 
     for epoch_i in range(epochs):
         print(f"{'Epoch':^7} | {'Batch':^7} | {'Train Loss':^12} | {'Val Loss':^10} | {'Val Acc':^9} | {'Elapsed':^9}")
-        print("-"*70)
+        print("-"*60)
 
         t0_epoch, t0_batch = time.time(), time.time()
 
@@ -85,7 +86,7 @@ def train(model, optimizer, train_labels, scheduler, train_dataloader, val_datal
 
         avg_train_loss = total_loss / len(train_dataloader)
 
-        print("-"*70)
+        print("-"*60)
         if evaluation == True:
             print("val set: ")
             val_loss, val_accuracy = evaluate(model, val_dataloader)
@@ -97,13 +98,13 @@ def train(model, optimizer, train_labels, scheduler, train_dataloader, val_datal
         torch.save(model.state_dict(), './saved_models/exp4_stage1.model')
         print("\n")
 
-    print("Training complete!")
+    print("Finished Training Model And Saved Checkpoints)!")
     return y_actual, y_preds
 
 
 
 def evaluate(model, val_dataloader, mode=None, epoch="None"):
-    model.eval()
+    model.eval() 
     val_accuracy = []
     val_loss = []
     loss_fn = nn.BCELoss()
