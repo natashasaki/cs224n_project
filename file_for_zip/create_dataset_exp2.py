@@ -12,7 +12,7 @@ def text_preprocessing(text):
     return text
 
 
-def preprocessForBERT(data, max_len):
+def preprocessForBERT(data, max_len): # add max_len for customizabtion, gets tokens, masks, etc for BERT
   input_ids = []
   attention_masks = []
   tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case = True)
@@ -36,7 +36,7 @@ def preprocessForBERT(data, max_len):
   return input_ids, attention_masks
 
 
-def loadData():
+def loadData(): #specific dataset file for exp2 with emotion labels concatenated to Redddit post texts
     header_list = ["input", "condition_label"]
     data = pd.read_csv("./dataset/dataset_exp2.csv", on_bad_lines='skip', names=header_list)
     data["condition_label"] = data["condition_label"].apply(lambda x: literal_eval(x))
@@ -44,7 +44,7 @@ def loadData():
     return data
 
 
-def splitData(data):
+def splitData(data): # 80-10-10 split
     X_train, X_test, y_train, y_test = train_test_split(data['input'], data['condition_label'], test_size = 0.2, random_state = 123)
     X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size = 0.5, random_state = 123)
     y_train= np.array(y_train.apply(lambda x: np.array(x), 0).values.tolist())
