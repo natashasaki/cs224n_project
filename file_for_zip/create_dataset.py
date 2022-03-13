@@ -8,22 +8,14 @@ import numpy as np
 from ast import literal_eval
 
 def text_preprocessing(text):
-
-    # remove trailing whitespace
     text = re.sub(r'\s+', ' ', text).strip()
-
-    # TODO: add more pre-processing steps?
-
     return text
 
 
 def preprocessForBERT(data, max_len):
-  # Initialise empty arrays
   input_ids = []
   attention_masks = []
   tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case = True)
-
-  # Encode_plus with above processing
   for comment in data:
     encoded_sent = tokenizer.encode_plus(
         text = text_preprocessing(comment),
@@ -31,13 +23,11 @@ def preprocessForBERT(data, max_len):
         max_length = max_len,
         pad_to_max_length = True,
         return_attention_mask = True,
-        truncation = True # truncate text that is too long
+        truncation = True
     )
 
     input_ids.append(encoded_sent.get('input_ids'))
     attention_masks.append(encoded_sent.get('attention_mask'))
-  
-  # Convert list to tensors
   input_ids = torch.tensor(input_ids)
   attention_masks = torch.tensor(attention_masks)
 
@@ -50,7 +40,6 @@ def loadData():
     """
     header_list = ["text", "condition_label", "emotion_label"]
     data = pd.read_csv("./dataset/dataset_partial.csv", on_bad_lines='skip', names=header_list)
-        # data = pd.read_csv("./dataset/dataset.csv", on_bad_lines='skip', names=header_list)
 
     print(data.head())
     dist = data.groupby('condition_label')['text'].nunique()
@@ -73,7 +62,6 @@ def loadData():
 
     result = pd.concat(frames)
     print(result)
-   # return data
     return data
 
 def splitData(data, condition=True):
@@ -86,7 +74,6 @@ def splitData(data, condition=True):
     else:
       label = 'emotion_label'
 
-    # train-val-test split: 80-10-10
     X_train, X_test, y_train, y_test = train_test_split(data['text'], data[label], test_size = 0.2, random_state = 123)
     X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size = 0.5, random_state = 123)
     print(type(literal_eval(y_train[8])))

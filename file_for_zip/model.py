@@ -7,10 +7,8 @@ class BertClassifier(nn.Module):
 
     D_in, H, D_out = 768, 256, outputDim
 
-    # Bert layer
     self.bert = BertModel.from_pretrained('bert-base-uncased')
 
-    # Linear layer with ReLU
     self.classifier = nn.Sequential(
         nn.Linear(D_in, H),
         nn.Dropout(.2),
@@ -18,7 +16,7 @@ class BertClassifier(nn.Module):
         nn.Linear(H, D_out)
     )
 
-    if freeze_bert_pretrained: # freeze these parameters so only the linear layers can be modified
+    if freeze_bert_pretrained:
       for param in self.bert.parameters():
         param.requires_grad = False
   
