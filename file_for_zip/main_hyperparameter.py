@@ -12,18 +12,18 @@ from create_dataset import createDataset, preprocessForBERT, loadData, splitData
 from matplotlib import pyplot as plt
 
 def initialize(learning_rate):
-    bert_classifier = BertClassifier(outputDim=6)
+    bert_classifier = BertClassifier(outputDim=6) # 6 condition labels
     bert_classifier.to(device)
 
-    optimizer = AdamW(bert_classifier.parameters(), lr = learning_rate, eps=1e-8)
+    optim = AdamW(bert_classifier.parameters(), lr = learning_rate, eps=1e-8)
     epochs = 3
-    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps = 0, num_training_steps = len(train_dataloader) * epochs)
+    lr_schedule = get_linear_schedule_with_warmup(optimizer, num_warmup_steps = 0, num_training_steps = len(train_dataloader) * epochs)
     
-    return bert_classifier, optimizer, scheduler
+    return bert_classifier, optim, lr_schedule
 
 
 
-def set_seed(seed_value=42):
+def set_seed(seed_value=25):
     """Set seed for reproducibility.
     """
     random.seed(seed_value)
@@ -34,7 +34,7 @@ def set_seed(seed_value=42):
 
 
 def train(model, optimizer, train_labels, scheduler, train_dataloader, val_dataloader=None, epochs=4, evaluation=False):
-    print("Start training...\n")
+    print("Started Training Model...\n")
     y_integers = np.argmax(train_labels, axis=1)
     class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_integers), y=y_integers.cpu().detach().numpy())
     weights= torch.tensor(class_weights,dtype=torch.float)
@@ -45,7 +45,7 @@ def train(model, optimizer, train_labels, scheduler, train_dataloader, val_datal
 
     for epoch_i in range(epochs):
         print(f"{'Epoch':^7} | {'Batch':^7} | {'Train Loss':^12} | {'Val Loss':^10} | {'Val Acc':^9} | {'Elapsed':^9}")
-        print("-"*70)
+        print("-"*60)
 
         t0_epoch, t0_batch = time.time(), time.time()
 
@@ -87,19 +87,19 @@ def train(model, optimizer, train_labels, scheduler, train_dataloader, val_datal
 
         avg_train_loss = total_loss / len(train_dataloader)
 
-        print("-"*70)
+        print("-"*60)
         if evaluation == True:
             print("val set: ")
             val_loss, val_accuracy = evaluate(model, val_dataloader)
             time_elapsed = time.time() - t0_epoch
             
             print(f"{epoch_i + 1:^7} | {'-':^7} | {avg_train_loss:^12.6f} | {val_loss:^10.6f} | {val_accuracy:^9.2f} | {time_elapsed:^9.2f}")
-            print("-"*70)
+            print("-"*60)
 
         torch.save(model.state_dict(), f"./saved_models/baseline_epoch{epoch_i}.model")
         print("\n")
 
-    print("Training complete!")
+    print("Done training model!  Checkpoints Saved!")
     return y_preds
 
 
@@ -134,18 +134,16 @@ def evaluate(model, val_dataloader):
 
 
 import torch.nn.functional as F
-
-
 def make_predictions(model, dataloader):
-    model.eval()
+    model.eval() # no dropout!
 
     all_logits = []
 
     for batch in dataloader:
-        b_input_ids, b_attn_mask = tuple(t.to(device) for t in batch)[:2]
+        ids, masks = tuple(t.to(device) for t in batch)[:2]
 
         with torch.no_grad():
-            logits = model(b_input_ids, b_attn_mask)
+            logits = model(ids, masks)
         all_logits.append(logits)
     
     all_logits = torch.cat(all_logits, dim=0)
@@ -157,7 +155,7 @@ def make_predictions(model, dataloader):
 ############### MAIN CODE ###############
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-set_seed(123)
+set_seed(25)
 data = loadData()
 X_train, y_train, X_val, y_val, X_test, y_test = splitData(data)
 
